@@ -5,7 +5,8 @@
       "name": "nagarcot",
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],
-      "port": 3131
+      "port": 3131,
+      "autoPort": false
     }
   ]
 }
