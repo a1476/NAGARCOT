@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAGARCOT</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header: field indicator tabs -->
+    <header id="header">
+      <div class="field-tabs">
+        <button class="tab active" data-field="вопросы" id="tab-вопросы">
+          <span class="tab-dot"></span>
+          СПР
+        </button>
+        <button class="tab" data-field="цели" id="tab-цели">
+          <span class="tab-dot"></span>
+          Цели
+        </button>
+        <button class="tab" data-field="база" id="tab-база">
+          <span class="tab-dot"></span>
+          База
+        </button>
+      </div>
+      <button id="settings-btn" title="Настройки">⚙</button>
+    </header>
+
+    <!-- Field description (for вопросы and цели) -->
+    <div id="field-description" class="field-description">
+      <p id="field-desc-text"></p>
+    </div>
+
+    <!-- Main dialog area -->
+    <main id="dialog-area">
+      <div id="messages"></div>
+
+      <!-- Bifurcation card (развилка) — hidden by default -->
+      <div id="bifurcation" class="bifurcation hidden">
+        <p class="bifurcation-text">За этим вопросом — ваши цели. Можем поработать с ними — это даст более чистый разбор.</p>
+        <div class="bifurcation-buttons">
+          <button class="bif-btn primary" data-choice="now">Посмотреть цель сейчас</button>
+          <button class="bif-btn" data-choice="later">Потом</button>
+          <button class="bif-btn" data-choice="answer">Просто ответить</button>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div id="input-area">
+        <textarea id="user-input" placeholder="Напишите, что у вас..." rows="1"></textarea>
+        <button id="send-btn">→</button>
+      </div>
+    </main>
+
+    <!-- Bottom zone: drops accumulate here -->
+    <div id="drop-zone">
+      <span class="drop-zone-label">понимание о тебе копится здесь</span>
+      <div id="drops-container"></div>
+    </div>
+
+  </div>
+
+  <!-- Settings panel (slide-in) -->
+  <div id="settings-overlay" class="hidden"></div>
+  <div id="settings-panel" class="hidden">
+    <div class="settings-header">
+      <h2>Настройки</h2>
+      <button id="settings-close">✕</button>
+    </div>
+    <div class="settings-body">
+      <label class="setting-label">Режим вызова модели</label>
+      <div class="mode-switch">
+        <button class="mode-btn" id="mode-local" data-mode="local">
+          <span class="mode-title">Локалка / Подписка</span>
+          <span class="mode-desc">Через подписку Claude, без ключа</span>
+        </button>
+        <button class="mode-btn active" id="mode-api" data-mode="api">
+          <span class="mode-title">API / Ключ</span>
+          <span class="mode-desc">Прямой вызов — быстро, для демо</span>
+        </button>
+      </div>
+      <div id="api-key-section">
+        <label class="setting-label">API-ключ Anthropic</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+        <button id="save-key-btn">Сохранить ключ</button>
+        <p class="setting-note">Ключ хранится локально на вашей машине, не в коде.</p>
+      </div>
+      <p id="settings-status" class="settings-status"></p>
+    </div>
+  </div>
+
+  <!-- Flying drop animation layer -->
+  <div id="animation-layer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
