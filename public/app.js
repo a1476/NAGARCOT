@@ -1,11 +1,14 @@
 // NAGARCOT frontend — direct model call via local proxy server
-// NOTE: callModel is proxied through localhost:3131 → Anthropic API directly.
+// NOTE: callModel is proxied through the same origin → Anthropic API directly.
 // No subagent orchestration. Short replies must feel INSTANT.
 
-const API_BASE = 'http://localhost:3131';
+// Relative base: works from the Mac AND from the iPad hitting the Mac's
+// local-network address (http://<mac-ip>:3131). Never hardcode localhost.
+const API_BASE = '';
+const RETURN_URL = 'https://nagarcot.com/prelaunch/#spr-demo';
 
 // ── System prompt (draft A — language is DRAFT, pending polish) ──
-const SYSTEM_PROMPT = `Ты — ядро системы, которая помогает человеку принимать его решения точнее. У человека есть зеркало для внешности и нет зеркала для внутреннего, хотя внутреннее правит решениями. Ты — это зеркало: показываешь то, чего он сам в себе не видит. НЕ тёплый ассистент по умолчанию. НЕ кодинг.
+const SYSTEM_PROMPT = `Ты — ядро системы, которая помогает человеку принимать его решения точнее. У человека есть зеркало для внешности и нет зеркала для внутреннего, хотя внутреннее правит решениями. Ты — это зеркало: показываешь то, чего он сам в себе не видит. НЕ тёплый ассистент по умолчанию. НЕ кодинг. Веди диалог на языке человека.
 
 ТРИ ПОЛЯ (твоя внутренняя модель, НЕ экран): ВОПРОС — что человек реально решает под тем, что спросил. ЦЕЛЬ — ради чего, куда идёт, своё или навязанное. БАЗА — из какого состояния решает. Человек видит один разговор, не три поля.
 
@@ -33,6 +36,7 @@ const SYSTEM_PROMPT = `Ты — ядро системы, которая помо
 - «всё это время / всю беседу / весь разговор / с самого начала» — ложное время. Вместо: называй суть без отсылки ко времени.
 - «с чем пришёл?» — провоцирует отпор.
 - «понимаю, почему это непросто» / «давай начистоту» / длинные смягчающие преамбулы — джипитишная вата. Вместо: сразу к сути.
+- ЖАРГОН СИСТЕМЫ. Служебные слова этого промпта — для тебя, не для человека. В репликах запрещены: «размотать», «вскрыть/вскрытие», «рез / режет», «зонд», «маркер», «поле», «база», «тир/tier», «контур», «развилка» как термины. Говори обычным человеческим языком: «разобраться», «посмотреть, что за этим стоит», «задевает», «выбор».
 КОРЕНЬ всех штампов: модель говорит заготовкой, не сверяясь с реальностью (длина разговора, что человек принёс, есть ли то, на что ссылаешься). Лекарство: констатируй сухо то, что реально перед тобой.
 
 ИНВАРИАНТЫ: Система, не друг. Не суди морально, чего человек хочет. Орудие, не советчик — НИКОГДА не выноси вердикт «выбери A» / «цель ложная», ПОКАЗЫВАЙ и возвращай выбор. Подтверждение = ВОПРОС, отвечает человек. Крути переменную, не данность.
@@ -49,7 +53,9 @@ TIER 1 — РАМКА: заявленная проблема настоящая?
 TIER 2 — МАРШРУТ (первое «да» = тип, подтверди, потом разворот): нет ФАКТОВ → не знаю мир (дай факты); факты есть, неясно ЧТО ВАЖНО → не знаю себя (прояснить ценности); цели ВОЮЮТ → конфликт целей (разложить цену каждой); мешает правило «каким решение должно быть» → дисфункц. убеждения; нет способа сложить → не знаю как решать (дать структуру). ФОНОМ негативная ориентация → сначала вернуть установку, потом разворот.
 TIER 3 — ГЛУБИНА (по согласию): на УЗЛЕ (рана, про отца/детство) → НАЗОВИ и верни выбор: сам / специалист / достаточно. Показать узел = победа. Узел НЕ разрабатывай.
 
-МЯГКАЯ РАЗВИЛКА СПР→ЦЕЛИ: когда под вопросом встаёт «ради чего» — НЕ тащи в смысл молча. Назови связь, дай выбор: «за этим выбором — твоя цель. Размотать сейчас — или просто ответить по поверхности?» Двери: цель сейчас / потом / просто ответ. Поверхностный ответ давай ВСЕГДА, если выбрал «не сейчас». Не на каждый чих — раз на тему.
+ПРОТОКОЛ ВХОДА В ГЛУБИНУ (жёсткий порядок): когда переходишь с внешнего (что сделать, факты, варианты) на внутреннее, задевающее идентичность/самооценку/раны/несущие опоры — реплика с маркером [ГЛУБИНА] это ПОЛНАЯ ОСТАНОВКА: назови, что дальше разговор идёт глубже и может задеть, и спроси готовность. В ЭТОЙ реплике глубокий вопрос НЕ задавай. Вглубь — только СЛЕДУЮЩИМ ходом и только после явного согласия человека. Если ответил «нет» — остаёшься на поверхностном уровне, работаешь с тем, что есть, не углубляешься. Если в этом разговоре согласие на глубину уже давалось — повторно не спрашивай и маркер не ставь.
+
+МЯГКАЯ РАЗВИЛКА СПР→ЦЕЛИ: когда под вопросом встаёт «ради чего» — НЕ тащи в смысл молча. Назови связь простыми словами самого человека — без готовых формул и без служебных слов. Дай выбор бытовым языком, например в духе: «за этим выбором стоит то, ради чего ты это делаешь. Разобраться с этим сейчас — или просто ответить на вопрос?» Формулировку каждый раз строй из его темы, не повторяй шаблон. Двери: цель сейчас / потом / просто ответ. Поверхностный ответ давай ВСЕГДА, если выбрал «не сейчас». Не на каждый чих — раз на тему.
 
 ПОЛЕ ЦЕЛЕЙ:
 ВОРОТА ОСОЗНАННОЙ СЕССИИ (перед верификацией): если человек согласился идти в цель всерьёз — ПРЕДУПРЕДИ: «если пойдём всерьёз — вопросы будут жёсткими. Не чтобы задеть — чтобы вскрыть то, что прячешь от себя. Оно того стоит, но бьёт. Готов?» Без согласия глубоко НЕ вскрывай. Зонды НЕ смягчай — предупреждай.
@@ -69,45 +75,47 @@ TIER 3 — ГЛУБИНА (по согласию): на УЗЛЕ (рана, пр
 
 СБОРКА РЕПЛИКИ: отрази коротко → ОДИН ход за реплику (через что/как, не почему, не да/нет) → по согласию глубже → краткость → верни выбор.
 
-УПРАВЛЯЮЩИЕ МАРКЕРЫ (НЕ показывать человеку, интерфейс их вырезает): первой строкой [ПОЛЕ:вопросы|цели|база]. Когда отложил значимый сигнал о человеке — [МАЯК]. Когда предлагаешь развилку СПР→Цели — [РАЗВИЛКА]. Когда переходишь с внешнего (что сделать, факты, варианты) на внутреннее, задевающее идентичность/самооценку/раны/несущие опоры — перед тем как копнуть, поставь маркер [ГЛУБИНА].
+УПРАВЛЯЮЩИЕ МАРКЕРЫ (НЕ показывать человеку, интерфейс их вырезает): первой строкой [ПОЛЕ:вопросы|цели|база]. Когда отложил значимый сигнал о человеке — [МАЯК:домен], где домен — один из health|energy|psyche|cognition|performance|meaning, к какому контуру человека сигнал относится. Когда предлагаешь развилку СПР→Цели — [РАЗВИЛКА:краткий текст развилки одним предложением]. Перед остановкой на входе в глубину — [ГЛУБИНА] (см. ПРОТОКОЛ ВХОДА В ГЛУБИНУ).
 
 ЗАВЕРШЕНИЕ: когда ответил на вопрос человека по сути — НЕ тяни новый вопрос. Останови ход и спроси разрешения идти дальше: «Мы ответили на твой вопрос. Этого достаточно — или пойдём дальше?» Не вываливай ещё зонд, не лечи, не говори «обращайтесь ещё». Точка — это остановка, не очередной вопрос.
 
 ГРАНИЦА: не лечишь, не диагностируешь, не записываешь, не толкаешь к решению. Показываешь — и возвращаешь выбор.`;
 
 const FIELD_DESCRIPTIONS = {
-  вопросы: 'СПР — что вы реально решаете. Не то, что звучит в вопросе, а то, что стоит за ним.',
-  цели: 'Цели — ради чего. Куда вы идёте, своё это или навязанное, и можно ли отсюда идти.',
-  база: null, // placeholder tab
+  вопросы: 'Decisions — what you are really deciding. Not what the question says, but what stands behind it.',
+  цели: 'Goals — what for. Where you are heading, whether it is yours, and whether you can go from here.',
+  база: 'Base — the state you decide from. Serious decisions hold when the state is stable.',
 };
+
+const DOMAINS = ['health', 'energy', 'psyche', 'cognition', 'performance', 'meaning'];
 
 // ── State ──
 let messages = []; // { role: 'user'|'assistant', content: string }
 let currentField = 'вопросы';
 let isTyping = false;
 
-// ── Persistent flags (localStorage) ──
-// dialogStarted stays session-only (resets on reload — intentional for splash).
-// depth / fieldЦели / fieldБаза are profile-level: shown once ever, not once per session.
+// ── Flags ──
+// Field-transition hints: shown once ever (localStorage, profile-level surrogate).
+// Depth gate: shown once PER SESSION (sessionStorage) — canonical rule.
+// dialogStarted: session-only, controls splash.
 const FLAGS_KEY = 'nagarcot_shown_flags';
+const DEPTH_KEY = 'nagarcot_depth_session';
 
 function loadFlags() {
   try {
     const saved = JSON.parse(localStorage.getItem(FLAGS_KEY) || '{}');
     return {
-      depth: !!saved.depth,
       fieldЦели: !!saved.fieldЦели,
       fieldБаза: !!saved.fieldБаза,
       dialogStarted: false, // always resets — controls splash visibility
     };
   } catch {
-    return { depth: false, fieldЦели: false, fieldБаза: false, dialogStarted: false };
+    return { fieldЦели: false, fieldБаза: false, dialogStarted: false };
   }
 }
 
 function saveFlags() {
   localStorage.setItem(FLAGS_KEY, JSON.stringify({
-    depth: shownFlags.depth,
     fieldЦели: shownFlags.fieldЦели,
     fieldБаза: shownFlags.fieldБаза,
   }));
@@ -115,23 +123,51 @@ function saveFlags() {
 
 const shownFlags = loadFlags();
 
+function depthShownThisSession() {
+  return sessionStorage.getItem(DEPTH_KEY) === '1';
+}
+function markDepthShown() {
+  sessionStorage.setItem(DEPTH_KEY, '1');
+}
+
 // ── DOM refs ──
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const bifurcationEl = document.getElementById('bifurcation');
-const dropsContainer = document.getElementById('drops-container');
+const bifurcationTextEl = document.getElementById('bifurcation-text');
+const depthGateEl = document.getElementById('depth-gate');
 const animLayer = document.getElementById('animation-layer');
 const fieldDescText = document.getElementById('field-desc-text');
 const fieldDesc = document.getElementById('field-description');
 
 // ── Marker parsing ──
+// Markers may carry parameters: [МАЯК:psyche], [РАЗВИЛКА:card text].
 function parseMarkers(text) {
-  const markers = { field: null, beacon: false, bifurcation: false, depth: false };
+  const markers = {
+    field: null,
+    beacon: false,
+    beaconDomain: null,
+    bifurcation: false,
+    bifurcationText: null,
+    depth: false,
+  };
   const fieldMatch = text.match(/\[ПОЛЕ:(вопросы|цели|база)\]/);
   if (fieldMatch) markers.field = fieldMatch[1];
-  if (text.includes('[МАЯК]')) markers.beacon = true;
-  if (text.includes('[РАЗВИЛКА]')) markers.bifurcation = true;
+
+  const beaconMatch = text.match(/\[МАЯК(?::([a-zа-яё]+))?\]/i);
+  if (beaconMatch) {
+    markers.beacon = true;
+    const d = (beaconMatch[1] || '').toLowerCase();
+    markers.beaconDomain = DOMAINS.includes(d) ? d : null;
+  }
+
+  const bifMatch = text.match(/\[РАЗВИЛКА(?::([^\]]+))?\]/);
+  if (bifMatch) {
+    markers.bifurcation = true;
+    markers.bifurcationText = (bifMatch[1] || '').trim() || null;
+  }
+
   if (text.includes('[ГЛУБИНА]')) markers.depth = true;
   return markers;
 }
@@ -139,25 +175,49 @@ function parseMarkers(text) {
 function stripMarkers(text) {
   return text
     .replace(/\[ПОЛЕ:(вопросы|цели|база)\]/g, '')
-    .replace(/\[МАЯК\]/g, '')
-    .replace(/\[РАЗВИЛКА\]/g, '')
+    .replace(/\[МАЯК(?::[a-zа-яё]+)?\]/gi, '')
+    .replace(/\[РАЗВИЛКА(?::[^\]]+)?\]/g, '')
     .replace(/\[ГЛУБИНА\]/g, '')
     .replace(/^\n+/, '')
     .trim();
 }
 
-// ── Toast notifications ──
+// ── Notification dispatcher ──
+// Canonical rules: never two notifications at once; depth beats everything;
+// base transition beats goals transition; the loser is DROPPED, not queued
+// (a queue creates a tail that catches the person out of context).
+const NOTIF_PRIORITY = { depth: 3, fieldБаза: 2, fieldЦели: 1 };
+let pendingNotification = null;
+
+function requestNotification(key) {
+  if (!pendingNotification || NOTIF_PRIORITY[key] > NOTIF_PRIORITY[pendingNotification]) {
+    pendingNotification = key;
+  }
+}
+
+function flushNotification() {
+  if (!pendingNotification) return;
+  const key = pendingNotification;
+  pendingNotification = null;
+
+  if (key === 'depth') {
+    markDepthShown();
+    setTimeout(showDepthGate, 400);
+  } else {
+    if (key === 'fieldЦели') { shownFlags.fieldЦели = true; saveFlags(); }
+    if (key === 'fieldБаза') { shownFlags.fieldБаза = true; saveFlags(); }
+    setTimeout(() => showToast(key), 400);
+  }
+}
+
+// ── Toast notifications (soft field-transition hints — fade on their own) ──
 const TOASTS = {
-  depth: {
-    text: 'Этот вопрос уходит глубже обычного. Дальше можем коснуться того, что задевает, — и может подняться сопротивление: желание свернуть, отмахнуться. Это нормально, так устроена работа с серьёзным — не признак, что что-то идёт не так. Темп задаёшь ты: идём дальше, когда готов.',
-    duration: 9000,
-  },
   fieldЦели: {
-    text: 'Система работает и с вашими целями. Когда направление вопроса связано с тем, к чему вы идёте, вопрос задаётся из поля целей. Сейчас — один из них.',
+    text: 'The system also works with your goals. When a question is tied to where you are heading, it is asked from the goals field. This is one of them.',
     duration: 7000,
   },
   fieldБаза: {
-    text: 'Система работает и с вашим состоянием. Из какого состояния принимается решение — влияет на него. Когда это важно, вопрос задаётся из поля базы. Сейчас — один из них.',
+    text: 'The system also works with your state. The state a decision is made from shapes the decision. When it matters, the question is asked from the base field. This is one of them.',
     duration: 7000,
   },
 };
@@ -169,18 +229,42 @@ function showToast(key) {
   el.className = 'toast';
   el.textContent = cfg.text;
   document.getElementById('toast-layer').appendChild(el);
-  // animate in
   requestAnimationFrame(() => {
     requestAnimationFrame(() => el.classList.add('toast-visible'));
   });
-  // auto-dismiss
   setTimeout(() => {
     el.classList.remove('toast-visible');
     el.addEventListener('transitionend', () => el.remove(), { once: true });
   }, cfg.duration);
 }
 
-// ── Field switching ──
+// ── Depth gate (warning colour, never dismisses itself, requires Yes/No) ──
+function showDepthGate() {
+  depthGateEl.classList.remove('hidden');
+  inputEl.disabled = true;
+  sendBtn.disabled = true;
+  scrollToBottom();
+}
+
+function hideDepthGate() {
+  depthGateEl.classList.add('hidden');
+  inputEl.disabled = false;
+  sendBtn.disabled = false;
+}
+
+document.querySelectorAll('.gate-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const answer = btn.dataset.gate;
+    hideDepthGate();
+    if (answer === 'yes') {
+      sendMessage('Yes — I am ready, continue.');
+    } else {
+      sendMessage('No — let us stay at this level.');
+    }
+  });
+});
+
+// ── Field switching (driven by agent markers only; tabs are indicators) ──
 function setField(field) {
   const prev = currentField;
   currentField = field;
@@ -191,47 +275,14 @@ function setField(field) {
   });
 
   const desc = FIELD_DESCRIPTIONS[field];
-  if (desc) {
-    fieldDesc.style.display = '';
-    fieldDescText.textContent = desc;
-  } else {
-    fieldDesc.style.display = 'none';
-  }
+  fieldDesc.style.display = '';
+  fieldDescText.textContent = desc || '';
 
-  // First-transition toasts (only when agent switches, after dialog started)
+  // First-transition hints route through the dispatcher, not directly
   if (shownFlags.dialogStarted && field !== prev) {
-    if (field === 'цели' && !shownFlags.fieldЦели) {
-      shownFlags.fieldЦели = true;
-      saveFlags();
-      setTimeout(() => showToast('fieldЦели'), 400);
-    }
-    if (field === 'база' && !shownFlags.fieldБаза) {
-      shownFlags.fieldБаза = true;
-      saveFlags();
-      setTimeout(() => showToast('fieldБаза'), 400);
-    }
+    if (field === 'цели' && !shownFlags.fieldЦели) requestNotification('fieldЦели');
+    if (field === 'база' && !shownFlags.fieldБаза) requestNotification('fieldБаза');
   }
-}
-
-// ── Tab clicks ──
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const field = tab.dataset.field;
-    if (field === 'база') {
-      setField('база');
-      showBaseStub();
-    } else {
-      setField(field);
-    }
-  });
-});
-
-function showBaseStub() {
-  const stub = document.createElement('div');
-  stub.className = 'message agent field-база';
-  stub.textContent = 'Здесь со временем накапливается понимание вашего базового состояния. Серьёзные решения стоит принимать, когда оно стабильно. Отсюда вырастет ваш базовый профиль — связь с тем, что копится внизу.';
-  messagesEl.appendChild(stub);
-  scrollToBottom();
 }
 
 // ── Render message ──
@@ -257,7 +308,7 @@ function scrollToBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-// ── Typing indicator ──
+// ── Typing indicator (calm fade, nothing jumps) ──
 function showTyping() {
   const el = document.createElement('div');
   el.className = 'message agent typing-indicator';
@@ -272,26 +323,34 @@ function hideTyping() {
   if (el) el.remove();
 }
 
-// ── Flying drop animation ──
-function fireBeacon() {
-  // Find start position: bottom of last agent message
+// ── Flying drop → domain block ──
+function fireBeacon(domain) {
+  // Fallback: no domain from the agent → distribute pseudo-randomly.
+  // (Honest content-based routing lives in АРХИТЕКТУРНЫЕ_ИДЕИ.md — needs block spec.)
+  const target = domain || DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
+  const block = document.querySelector(`.domain-block[data-domain="${target}"]`);
+  if (!block) return;
+
+  // Start position: bottom of last agent message, clamped into the viewport
+  // (fix: previously the drop could launch from off-screen after scrolling)
   const agentMsgs = messagesEl.querySelectorAll('.message.agent');
   const lastMsg = agentMsgs[agentMsgs.length - 1];
-  if (!lastMsg) return;
+  let startX = window.innerWidth * 0.3;
+  let startY = window.innerHeight * 0.5;
+  if (lastMsg) {
+    const r = lastMsg.getBoundingClientRect();
+    startX = Math.min(Math.max(r.left + r.width * 0.15, 24), window.innerWidth - 24);
+    startY = Math.min(Math.max(r.bottom, 80), window.innerHeight - 160);
+  }
 
-  const msgRect = lastMsg.getBoundingClientRect();
-  const dropZoneRect = document.getElementById('drop-zone').getBoundingClientRect();
-
-  const startX = msgRect.left + msgRect.width * 0.15;
-  const startY = msgRect.bottom;
-  const endX = dropZoneRect.left + dropZoneRect.width / 2 + (Math.random() - 0.5) * 80;
-  const endY = dropZoneRect.top + dropZoneRect.height * 0.4;
+  const blockRect = block.getBoundingClientRect();
+  const endX = blockRect.left + blockRect.width / 2;
+  const endY = blockRect.top + blockRect.height / 2;
 
   const drop = document.createElement('div');
   drop.className = 'flying-drop';
   drop.style.left = startX + 'px';
   drop.style.top = startY + 'px';
-  drop.style.background = getComputedStyle(document.body).getPropertyValue('--accent').trim();
   animLayer.appendChild(drop);
 
   const duration = 700;
@@ -301,7 +360,6 @@ function fireBeacon() {
     const t = Math.min((now - start) / duration, 1);
     const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // ease-in-out quad
 
-    // Arc: drop slightly toward the centre, then down
     const arcX = startX + (endX - startX) * ease;
     const arcY = startY + (endY - startY) * ease - Math.sin(t * Math.PI) * 60;
 
@@ -313,19 +371,28 @@ function fireBeacon() {
       requestAnimationFrame(animate);
     } else {
       drop.remove();
-      // Add permanent dot to drops container
-      const dot = document.createElement('div');
-      dot.className = 'drop-particle';
-      dot.style.background = getComputedStyle(document.body).getPropertyValue('--accent').trim();
-      dropsContainer.appendChild(dot);
+      landDrop(block);
     }
   }
 
   requestAnimationFrame(animate);
 }
 
+function landDrop(block) {
+  // Accumulated dot inside the block
+  const dot = document.createElement('div');
+  dot.className = 'drop-particle';
+  block.querySelector('.domain-dots').appendChild(dot);
+
+  // Calm pulse of the receiving block (single soft highlight, nothing blinks)
+  block.classList.remove('block-pulse');
+  void block.offsetWidth; // restart animation
+  block.classList.add('block-pulse');
+}
+
 // ── Bifurcation card ──
-function showBifurcation() {
+function showBifurcation(text) {
+  if (text) bifurcationTextEl.textContent = text;
   bifurcationEl.classList.remove('hidden');
   scrollToBottom();
 }
@@ -339,9 +406,9 @@ document.querySelectorAll('.bif-btn').forEach(btn => {
     const choice = btn.dataset.choice;
     hideBifurcation();
     let userMsg = '';
-    if (choice === 'now') userMsg = 'Да, давайте разберём цели сейчас.';
-    else if (choice === 'later') userMsg = 'Потом, не сейчас.';
-    else userMsg = 'Просто ответь на вопрос.';
+    if (choice === 'now') userMsg = 'Yes — let us look at the goal now.';
+    else if (choice === 'later') userMsg = 'Later, not now.';
+    else userMsg = 'Just answer the question.';
     sendMessage(userMsg);
   });
 });
@@ -368,9 +435,10 @@ async function callModel(userText) {
 
     if (data.error) {
       const errMap = {
-        no_key: 'API-ключ не задан. Откройте настройки (⚙) и введите ключ.',
-        local_error: `Ошибка локального режима: ${data.message}. Попробуйте запустить «claude auth login» в терминале.`,
-        api_error: `Ошибка API: ${data.message}`,
+        no_key: 'API key is not set. Open settings (⚙) and enter the key.',
+        local_error: `Local mode error: ${data.message}. Try running "claude auth login" in the terminal.`,
+        api_error: `API error: ${data.message}`,
+        bad_request: `Request error: ${data.message}`,
       };
       addErrorMessage(errMap[data.error] || data.message);
       messages.pop(); // don't keep failed message in history
@@ -390,30 +458,31 @@ async function callModel(userText) {
     // Render
     addMessage('agent', cleanText, currentField);
 
-    // Beacon: fire drop after a short delay for drama
+    // Beacon: fire drop into its domain block after a short delay
     if (markers.beacon) {
-      setTimeout(fireBeacon, 350);
+      setTimeout(() => fireBeacon(markers.beaconDomain), 350);
     }
 
-    // Depth marker: show toast once per session
-    if (markers.depth && !shownFlags.depth) {
-      shownFlags.depth = true;
-      saveFlags();
-      setTimeout(() => showToast('depth'), 600);
+    // Depth: full-stop gate, once per session; routed through the dispatcher
+    if (markers.depth && !depthShownThisSession()) {
+      requestNotification('depth');
     }
 
-    // Bifurcation card
+    // Bifurcation card (agent supplies the wording)
     if (markers.bifurcation) {
-      setTimeout(showBifurcation, 200);
+      setTimeout(() => showBifurcation(markers.bifurcationText), 200);
     } else {
       hideBifurcation();
     }
+
+    // One notification per turn, highest priority wins, losers are dropped
+    flushNotification();
 
   } catch (e) {
     hideTyping();
     isTyping = false;
     sendBtn.disabled = false;
-    addErrorMessage('Сервер недоступен. Убедитесь, что запущен node server.js на порту 3131.');
+    addErrorMessage('Server unavailable. Make sure node server.js is running on port 3131.');
     messages.pop();
   }
 }
@@ -486,32 +555,32 @@ async function loadSettingsUI() {
     const res = await fetch(`${API_BASE}/api/config`);
     const cfg = await res.json();
     setModeUI(cfg.mode);
-    if (cfg.hasKey) apiKeyInput.placeholder = '•••••••••••••• (задан)';
+    if (cfg.hasKey) apiKeyInput.placeholder = '•••••••••••••• (set)';
     if (cfg.mode === 'local') await refreshLocalStatus();
   } catch {
-    settingsStatus.textContent = 'Не удалось загрузить настройки. Сервер запущен?';
+    settingsStatus.textContent = 'Could not load settings. Is the server running?';
   }
 }
 
 async function refreshLocalStatus() {
-  localModeDesc.textContent = 'Проверка авторизации...';
+  localModeDesc.textContent = 'Checking authorization...';
   try {
     const res = await fetch(`${API_BASE}/api/local-status`);
     const s = await res.json();
     if (!s.hasBin) {
-      localModeDesc.textContent = 'CLI не найден на машине';
+      localModeDesc.textContent = 'CLI not found on this machine';
       localAuthHint.classList.remove('hidden');
-      checkLocalAuthBtn.textContent = 'Проверить снова';
+      checkLocalAuthBtn.textContent = 'Check again';
     } else if (s.ok) {
-      localModeDesc.textContent = '✓ Авторизован, готово к работе';
+      localModeDesc.textContent = '✓ Authorized, ready';
       localAuthHint.classList.add('hidden');
     } else {
-      localModeDesc.textContent = 'Требуется авторизация CLI';
+      localModeDesc.textContent = 'CLI authorization required';
       localAuthHint.classList.remove('hidden');
-      checkLocalAuthBtn.textContent = 'Проверить снова';
+      checkLocalAuthBtn.textContent = 'Check again';
     }
   } catch {
-    localModeDesc.textContent = 'Ошибка проверки';
+    localModeDesc.textContent = 'Check failed';
   }
 }
 
@@ -522,7 +591,7 @@ function setModeUI(mode) {
     refreshLocalStatus();
   } else {
     localAuthHint.classList.add('hidden');
-    localModeDesc.textContent = 'Через подписку Claude Max, без ключа';
+    localModeDesc.textContent = 'Via Claude Max subscription, no key';
   }
 }
 
@@ -535,7 +604,7 @@ function setModeUI(mode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
     });
-    settingsStatus.textContent = `Режим переключён: ${mode === 'api' ? 'API / Ключ' : 'Локалка'}`;
+    settingsStatus.textContent = `Mode switched: ${mode === 'api' ? 'API / Key' : 'Local'}`;
     setTimeout(() => settingsStatus.textContent = '', 2000);
   });
 });
@@ -544,7 +613,7 @@ checkLocalAuthBtn.addEventListener('click', refreshLocalStatus);
 
 document.getElementById('copy-log-btn').addEventListener('click', () => {
   if (!messages.length) {
-    settingsStatus.textContent = 'Диалог пуст.';
+    settingsStatus.textContent = 'The dialog is empty.';
     setTimeout(() => settingsStatus.textContent = '', 2000);
     return;
   }
@@ -552,7 +621,7 @@ document.getElementById('copy-log-btn').addEventListener('click', () => {
     (m.role === 'user' ? '👤 ' : '🤖 ') + m.content
   ).join('\n\n---\n\n');
   navigator.clipboard.writeText(text).then(() => {
-    settingsStatus.textContent = 'Лог скопирован в буфер.';
+    settingsStatus.textContent = 'Log copied to clipboard.';
     setTimeout(() => settingsStatus.textContent = '', 2000);
   });
 });
@@ -566,8 +635,8 @@ saveKeyBtn.addEventListener('click', async () => {
     body: JSON.stringify({ apiKey: key }),
   });
   apiKeyInput.value = '';
-  apiKeyInput.placeholder = '•••••••••••••• (задан)';
-  settingsStatus.textContent = 'Ключ сохранён.';
+  apiKeyInput.placeholder = '•••••••••••••• (set)';
+  settingsStatus.textContent = 'Key saved.';
   setTimeout(() => settingsStatus.textContent = '', 2000);
 });
 
