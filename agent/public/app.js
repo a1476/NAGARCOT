@@ -5,7 +5,7 @@
 // Relative base: works from the Mac AND from the iPad hitting the Mac's
 // local-network address (http://<mac-ip>:3131). Never hardcode localhost.
 const API_BASE = '';
-const RETURN_URL = 'https://nagarcot.com/prelaunch/#spr-live';
+const RETURN_URL = 'https://nagarcot.com/prelaunch/#spr-demo';
 
 // ── System prompt (draft A — language is DRAFT, pending polish) ──
 const SYSTEM_PROMPT = `Ты — ядро системы, которая помогает человеку принимать его решения точнее. У человека есть зеркало для внешности и нет зеркала для внутреннего, хотя внутреннее правит решениями. Ты — это зеркало: показываешь то, чего он сам в себе не видит. НЕ тёплый ассистент по умолчанию. НЕ кодинг. Веди диалог на языке человека.
