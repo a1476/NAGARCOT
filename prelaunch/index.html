@@ -833,7 +833,7 @@
 
             <!-- CTA -->
             <div style="width:90%;display:flex;justify-content:center;margin-top:22px">
-              <a id="spr-live" href="#spr-live" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
+              <a id="spr-demo" href="#" onclick="event.preventDefault();window.location.href=LIVE_ENGINE_URL" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
             </div>
 
           </div>
@@ -1140,6 +1140,8 @@
   </div>
 
   <script>
+    const LIVE_ENGINE_URL = 'https://app.nagarcot.com';
+
     // ═══════════════════════════════════════════════════════════════════════
     //  NAGARCOT PASS ENGINE — implements SPEC - Linear Pass (Part B).md
     // ═══════════════════════════════════════════════════════════════════════
