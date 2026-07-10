@@ -799,12 +799,13 @@
       </div><!-- /#hw-is -->
 
       <!-- ── SCENE 3 · SPR DEMO (step 8) ── -->
+      <div id="spr-demo"></div>
       <div id="hw-spr" class="hw-scene">
         <span style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;height:26px;padding:0 12px;background:#7A1F2B;color:#F2EFE9;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;border-radius:2px;z-index:2">LIVE TODAY</span>
 
-        <!-- Left column (scrollable) -->
-        <div style="position:absolute;left:0;top:0;width:62%;bottom:0;overflow-y:auto">
-          <div style="padding:30px 0 30px 42px">
+        <!-- Left column (scale-to-fit) -->
+        <div style="position:absolute;left:0;top:0;width:62%;bottom:0;overflow:hidden">
+          <div id="spr-left-inner" style="padding:30px 0 30px 42px;transform-origin:top left">
 
             <!-- DIALOGUE WINDOW -->
             <div style="width:90%;background:#FBF9F4;border:1px solid #8F8676;border-bottom:none;border-radius:2px 2px 0 0">
@@ -833,7 +834,7 @@
 
             <!-- CTA -->
             <div style="width:90%;display:flex;justify-content:center;margin-top:22px">
-              <a id="spr-live" href="#spr-live" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
+              <a id="spr-live" href="#" onclick="event.preventDefault();if(LIVE_ENGINE_URL)window.open(LIVE_ENGINE_URL,'_blank');else alert('Agent URL not configured yet.');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
             </div>
 
           </div>
@@ -1143,6 +1144,9 @@
     // ═══════════════════════════════════════════════════════════════════════
     //  NAGARCOT PASS ENGINE — implements SPEC - Linear Pass (Part B).md
     // ═══════════════════════════════════════════════════════════════════════
+
+    // ── Config — update URL when live agent is deployed ──────────────────────
+    const LIVE_ENGINE_URL = '';   // e.g. 'https://agent.nagarcot.com'
 
     const ACTS = [
       { id: 'cover',        steps: 1 },  // act 0
@@ -1766,7 +1770,24 @@
       if(spEl){let stH='';SPR_STRATA.forEach((s,i)=>{const dot=o===i?'#7A1F2B':'#CFC8BB',txt=o===i?'#141414':'#A79F92',fw=o===i?'800':'600',nm=s.name.toUpperCase().slice(0,28)+(s.name.length>28?'…':'');stH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92;width:26px">0${i+1}</span><span style="font-family:'Archivo',sans-serif;font-weight:${fw};font-size:13px;letter-spacing:0.04em;color:${txt}">${nm}</span></div>`;});spEl.innerHTML=stH;}
     }
 
-    function sprToggle(i) { renderSPR(sprOpen===i?-1:i); }
+    function sprToggle(i) { renderSPR(sprOpen===i?-1:i); fitSprDemo(); }
+
+    // Scale left column to fit viewport height — CTA always visible with ≥24px margin
+    function fitSprDemo() {
+      const inner = document.getElementById('spr-left-inner');
+      if (!inner) return;
+      inner.style.transform = '';          // reset to measure natural height
+      inner.style.width     = '';
+      const natural = inner.scrollHeight;
+      const available = window.innerHeight - 24;  // 24px bottom margin guarantee
+      if (natural > available) {
+        const s = available / natural;
+        inner.style.transform = `scale(${s.toFixed(4)})`;
+        inner.style.width     = `${(100 / s).toFixed(4)}%`;
+      }
+    }
+
+    window.addEventListener('resize', fitSprDemo);
 
     // ── Main ACT 3 dispatcher ─────────────────────────────────────────────────
     let hwActiveScene = -1;
@@ -1782,7 +1803,7 @@
         });
         hwActiveScene = scene;
         if (scene===1) startISLife();
-        if (scene===2) { sprOpen=-1; renderSPR(); }
+        if (scene===2) { sprOpen=-1; renderSPR(); fitSprDemo(); }
         if (scene===0 && f===0) triStartTyping();
       }
 
