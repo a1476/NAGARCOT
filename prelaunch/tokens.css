@@ -1,0 +1,69 @@
+/* NAGARCOT Design Tokens — extracted from Design System.dc.html */
+
+:root {
+  /* ── COLORS ── */
+  --clr-burgundy-700: #7A1F2B;   /* primary / brand */
+  --clr-burgundy-900: #5E1822;   /* press / hover */
+  --clr-burgundy-400: #A65C63;   /* muted tint */
+  --clr-burgundy-200: #CBA9AC;   /* muted tint */
+
+  --clr-cream-50:  #F2EFE9;      /* page background */
+  --clr-ink-900:   #141414;      /* text / dark sections */
+
+  --clr-stone-500: #6E675C;      /* warm grey */
+  --clr-stone-300: #A79F92;      /* warm grey */
+  --clr-line-200:  #D9D3C8;      /* hairline / contours */
+  --clr-line-100:  #EAE6DD;      /* lightest divider */
+
+  /* State / atom fill */
+  --clr-state-empty: #CFC8BB;
+  --clr-state-warm:  #A85C4B;    /* muted warm red */
+  --clr-state-amber: #B48A45;    /* amber */
+  --clr-state-green: #566B4D;    /* deep green */
+
+  /* ── TYPOGRAPHY ── */
+  /* Fonts: Archivo 800 (display/wordmark), Hanken Grotesk (body), IBM Plex Mono (captions/labels), Newsreader (alt body) */
+
+  --type-display-size: clamp(40px, 7vw, 84px);
+  --type-display-lh:   0.98;
+  --type-display-weight: 800;
+  --type-display-tracking: -0.01em;
+
+  --type-h2-size:    clamp(28px, 4vw, 40px);
+  --type-h2-lh:      1.15;
+  --type-h2-weight:  700;
+
+  --type-lead-size:  clamp(18px, 2vw, 22px);
+  --type-lead-lh:    1.45;
+  --type-lead-weight: 500;
+
+  --type-body-size:  clamp(16px, 1.2vw, 17px);
+  --type-body-lh:    1.65;
+
+  --type-caption-size: clamp(12px, 0.9vw, 13px);
+  --type-caption-lh:   1.4;
+  --type-caption-tracking: 0.1em;
+
+  /* ── SPACING — 8-pt base ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  16px;
+  --space-4:  24px;
+  --space-5:  32px;
+  --space-6:  48px;
+  --space-7:  64px;
+  --space-8:  96px;
+  --space-9:  128px;
+
+  /* ── LAYOUT ── */
+  --max-content: 1200px;
+  --margin-desktop: 64px;
+  --margin-mobile:  20px;
+  --gutter: 24px;
+
+  /* ── MOTION ── */
+  --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
+  --dur-state:   500ms;   /* act-internal state fade */
+  --dur-act:     640ms;   /* act-level transition */
+  --dur-menu:    400ms;
+}

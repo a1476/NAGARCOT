@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NAGARCOT — Life Decision System</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="tokens.css">
+
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--clr-cream-50);
+      color: var(--clr-ink-900);
+      font-family: 'Hanken Grotesk', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ── ALTITUDE RAIL ── */
+    #rail {
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      width: 48px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rail-spine {
+      position: absolute;
+      top: 80px; bottom: 80px;
+      left: 50%;
+      width: 1px;
+      background: var(--clr-ink-900);
+      opacity: 0.18;
+      transform: translateX(-50%);
+    }
+
+    .rail-ticks {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 64px;
+    }
+
+    .rail-tick {
+      width: 10px;
+      height: 1.5px;
+      background: var(--clr-ink-900);
+      opacity: 0.25;
+      transition: width 300ms, opacity 300ms, background 300ms;
+      cursor: default;
+      user-select: none;
+    }
+    .rail-tick[data-act="0"] { opacity: 0.18; width: 8px; } /* smallest at top */
+
+    .rail-tick.current {
+      width: 16px;
+      background: var(--clr-burgundy-700);
+      opacity: 1;
+    }
+    .rail-tick.unlocked {
+      cursor: pointer;
+    }
+    .rail-tick.unlocked:hover {
+      opacity: 0.8;
+      width: 14px;
+    }
+
+    /* ── HAMBURGER / CLOSE BUTTON ── */
+    #menu-btn {
+      position: fixed;
+      top: 24px; right: 24px;
+      z-index: 300;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 40px;
+      align-items: flex-end;
+    }
+    .menu-bar {
+      display: block;
+      height: 1.5px;
+      background: var(--clr-ink-900);
+      transition: transform 350ms var(--ease-out-expo), opacity 250ms, width 300ms;
+    }
+    .menu-bar:nth-child(1) { width: 22px; }
+    .menu-bar:nth-child(2) { width: 16px; }
+    .menu-bar:nth-child(3) { width: 22px; }
+
+    /* Animate to X when menu open */
+    #menu-btn[aria-expanded="true"] .menu-bar:nth-child(1) {
+      transform: translateY(6.5px) rotate(45deg);
+      width: 22px;
+    }
+    #menu-btn[aria-expanded="true"] .menu-bar:nth-child(2) {
+      opacity: 0;
+    }
+    #menu-btn[aria-expanded="true"] .menu-bar:nth-child(3) {
+      transform: translateY(-6.5px) rotate(-45deg);
+      width: 22px;
+    }
+
+    /* ── MENU OVERLAY ── */
+    #menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--clr-cream-50);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 var(--margin-desktop) 0 calc(48px + var(--margin-desktop));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-menu);
+    }
+    #menu-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .menu-nav {
+      list-style: none;
+    }
+    .menu-nav li {
+      border-bottom: 1px solid var(--clr-line-200);
+    }
+    .menu-nav li:first-child {
+      border-top: 1px solid var(--clr-line-200);
+    }
+    .menu-nav a {
+      display: flex;
+      align-items: baseline;
+      gap: 24px;
+      padding: 28px 0;
+      text-decoration: none;
+      color: var(--clr-ink-900);
+      font-family: 'Archivo', sans-serif;
+      font-weight: 800;
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: -0.01em;
+      transition: color 200ms;
+    }
+    .menu-nav a:hover {
+      color: var(--clr-burgundy-700);
+    }
+    .menu-nav .menu-idx {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: var(--type-caption-tracking);
+      font-weight: 400;
+      color: var(--clr-stone-300);
+      flex-shrink: 0;
+    }
+
+    /* ── STAGE (NARRATIVE view) ── */
+    #stage {
+      position: fixed;
+      inset: 0;
+      padding-left: 48px; /* rail width */
+    }
+
+    /* ── ACTS ── */
+    .act {
+      position: absolute;
+      inset: 0;
+      padding-left: 48px; /* keep consistent */
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-state);
+    }
+    .act.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── PLAIN SECTIONS (ECONOMICS, THE PATH, CONTACT) ── */
+    .plain-section {
+      position: fixed;
+      inset: 0;
+      padding-left: calc(48px + var(--margin-desktop));
+      padding-right: var(--margin-desktop);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-state);
+    }
+    .plain-section.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .plain-section h2 {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 800;
+      font-size: var(--type-display-size);
+      letter-spacing: var(--type-display-tracking);
+      line-height: var(--type-display-lh);
+    }
+    .plain-section .prep-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--type-caption-size);
+      letter-spacing: var(--type-caption-tracking);
+      color: var(--clr-stone-300);
+      margin-top: 32px;
+    }
+
+    /* ── ACT 0: COVER ── */
+    .act-cover-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 0 var(--margin-desktop);
+      text-align: center;
+    }
+    .cover-logo {
+      width: min(560px, 72vw);
+      height: auto;
+      display: block;
+      /* blend white PNG background into cream page */
+      mix-blend-mode: multiply;
+    }
+    .cover-tagline {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 500;
+      font-size: var(--type-lead-size);
+      line-height: var(--type-lead-lh);
+      color: var(--clr-ink-900);
+      margin-top: var(--space-6);
+    }
+    .cover-coords {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--type-caption-size);
+      letter-spacing: 0.06em;
+      color: var(--clr-stone-300);
+      margin-top: var(--space-8);
+    }
+
+    /* ── DEBUG PANEL ── */
+    #debug-panel {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      z-index: 400;
+      background: var(--clr-ink-900);
+      color: var(--clr-stone-300);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      line-height: 1.8;
+      padding: 12px 16px;
+      border-radius: 2px;
+      min-width: 180px;
+    }
+    #debug-panel.hidden { display: none; }
+    .dbg-label {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--clr-burgundy-400);
+      margin-bottom: 4px;
+    }
+    .dbg-btns {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .dbg-btn {
+      background: var(--clr-stone-500);
+      color: var(--clr-cream-50);
+      border: none;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      border-radius: 1px;
+    }
+    .dbg-btn:hover { background: var(--clr-stone-300); color: var(--clr-ink-900); }
+
+    /* ── ACT 2 · THE SYSTEM ── */
+    .tm-btn:hover { border-color: #7A1F2B !important; color: #7A1F2B !important; }
+    .tm-row:hover { opacity: 0.7; }
+
+    /* ── ACT 3 · HOW IT WORKS ── */
+    @keyframes statusInA { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    @keyframes statusInB { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    @keyframes breath    { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.025)} }
+    @keyframes glowPulse { 0%,100%{opacity:0.55} 50%{opacity:0.85} }
+    .hw-scene { position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity 400ms ease }
+    .hw-scene.hw-active { opacity:1;pointer-events:all }
+    .hw-row:hover { opacity:0.7 }
+    /* ── Scene status line — unified size/weight; position is per-scene inline ── */
+    .scene-status { font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty;margin:0 }
+    /* .scene-status--accented { } — reserved for design accent patch */
+  </style>
+  <script src="geo.js"></script>
+</head>
+<body>
+
+  <!-- ── ALTITUDE RAIL ── -->
+  <nav id="rail" aria-label="Section rail">
+    <div class="rail-spine"></div>
+    <div class="rail-ticks">
+      <div class="rail-tick current" data-act="0" title="Cover"></div>
+      <div class="rail-tick"         data-act="1" title="Nagarkot"></div>
+      <div class="rail-tick"         data-act="2" title="The System"></div>
+      <div class="rail-tick"         data-act="3" title="How It Works"></div>
+      <div class="rail-tick"         data-act="4" title="The Map"></div>
+      <div class="rail-tick"         data-act="5" title="Support"></div>
+    </div>
+  </nav>
+
+  <!-- ── HAMBURGER ── -->
+  <button id="menu-btn" aria-label="Open menu" aria-expanded="false">
+    <span class="menu-bar"></span>
+    <span class="menu-bar"></span>
+    <span class="menu-bar"></span>
+  </button>
+
+  <!-- ── MENU OVERLAY ── -->
+  <div id="menu-overlay" role="dialog" aria-modal="true" aria-label="Site navigation">
+    <ul class="menu-nav">
+      <li>
+        <a href="#" data-view="narrative">
+          <span class="menu-idx">01</span>NARRATIVE
+        </a>
+      </li>
+      <li>
+        <a href="#" data-view="economics">
+          <span class="menu-idx">02</span>ECONOMICS
+        </a>
+      </li>
+      <li>
+        <a href="#" data-view="path">
+          <span class="menu-idx">03</span>THE PATH
+        </a>
+      </li>
+      <li>
+        <a href="#" data-view="contact">
+          <span class="menu-idx">04</span>CONTACT
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── STAGE (NARRATIVE) ── -->
+  <div id="stage">
+
+    <!-- ACT 0 · COVER -->
+    <div class="act active" data-act="0" data-act-id="cover">
+      <div class="act-cover-inner" style="position:relative">
+        <!-- faint isoline field, site background language -->
+        <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+          <g fill="none" stroke="#E7E2D6" stroke-width="1">
+            <path d="M-20,760 Q 420,700 900,750 T 1460,720"/>
+            <path d="M-20,560 Q 400,490 920,545 T 1460,520"/>
+            <path d="M-20,340 Q 380,270 910,325 T 1460,300"/>
+            <path d="M-20,140 Q 360,80 900,130 T 1460,110"/>
+          </g>
+        </svg>
+        <!-- BOUND GROUP: wordmark · rule · category · coordinates — optically centered -4vh -->
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:-4vh">
+          <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(38px,6.85vw,88px);letter-spacing:-0.01em;line-height:1;color:#7A1F2B">NAGARCOT</div>
+          <div style="width:44px;height:1px;background:#7A1F2B;margin:18px 0 15px"></div>
+          <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:clamp(10px,1.05vw,14px);letter-spacing:0.16em;color:#141414;padding-left:0.16em">LIFE&nbsp;DECISION&nbsp;SYSTEM</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.11em;color:#6E675C;margin-top:12px">27°43′N&nbsp;&nbsp;85°31′E&nbsp;&nbsp;·&nbsp;&nbsp;2,175&nbsp;M</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACT 1 · NAGARKOT — extracted from Nagarkot Screen.dc.html -->
+    <div class="act" data-act="1" data-act-id="nagarkot" id="act-nagarkot" style="background:#141414">
+
+      <!-- PHOTO 1 · pre-dawn base layer -->
+      <img src="uploads/NAGARCOT%20pre%20rise.jpeg"
+           alt="Pre-dawn darkness at Nagarkot: a single star, village lights below"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+                  filter:saturate(0.72) contrast(1.06) brightness(0.98)">
+
+      <!-- PHOTO 2 · sunrise · cross-fades in on State B -->
+      <img id="nk-photo2" src="uploads/NAGARCOT%20rise.jpeg"
+           alt="Sunrise over the Himalayan ridge from Nagarkot"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+                  filter:saturate(0.72) sepia(0.16) hue-rotate(-8deg) contrast(1.04) brightness(0.97);
+                  opacity:0">
+
+      <!-- kicker -->
+      <div id="nk-kicker"
+           style="position:absolute;left:64px;top:56px;
+                  font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.18em;
+                  transition:color 1400ms ease-in-out,text-shadow 1400ms ease-in-out;
+                  color:#CFC8BB;text-shadow:0 1px 12px rgba(0,0,0,0.5)">NAGARKOT · NEPAL · 2,175 M</div>
+
+      <!-- STATE A · paragraph 1 over the darkness -->
+      <p id="nk-p1"
+         style="position:absolute;left:64px;top:34%;max-width:600px;margin:0;
+                font-weight:500;font-size:23px;line-height:1.6;color:#F2EFE9;
+                text-wrap:pretty;text-shadow:0 1px 18px rgba(0,0,0,0.45);
+                transition:opacity 500ms ease-in-out;opacity:1">Nagarkot is a ridge in Nepal where people come before dawn to watch the sun rise over the Himalayas. In that first light, the whole landscape becomes visible at once — every ridge and valley standing where it belongs.</p>
+
+      <!-- STATE B · paragraph 2 — same anchor as State A -->
+      <p id="nk-p2"
+         style="position:absolute;left:64px;bottom:30%;max-width:620px;margin:0;
+                font-weight:500;font-size:21px;line-height:1.6;color:#F2EFE9;
+                text-wrap:pretty;text-shadow:0 1px 18px rgba(0,0,0,0.5);
+                transition:opacity 600ms ease-in-out 400ms;opacity:0">We built Nagarcot for that kind of clarity. A system for life's decisions: it makes visible what actually drives a person's choices — and a choice made in clear light holds.</p>
+
+      <!-- wordmark -->
+      <div style="position:absolute;right:64px;bottom:56px;display:flex;align-items:center;gap:14px">
+        <span style="width:28px;height:1px;background:#A65C63"></span>
+        <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:17px;
+                     letter-spacing:0.02em;color:#CBA9AC;text-shadow:0 1px 10px rgba(0,0,0,0.4)">NAGARCOT</span>
+      </div>
+
+      <!-- scroll affordance — state A only -->
+      <div id="nk-hint"
+           style="position:absolute;left:50%;bottom:34px;transform:translateX(-50%);
+                  transition:opacity 500ms ease;opacity:1">
+        <svg width="14" height="30" viewBox="0 0 14 30">
+          <line x1="7" y1="0" x2="7" y2="24" stroke="#CFC8BB" stroke-width="1"></line>
+          <path d="M2,20 L7,26 L12,20" fill="none" stroke="#CFC8BB" stroke-width="1"></path>
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- ACT 2 · THE SYSTEM — extracted from The Mountain.dc.html + geo.js -->
+    <div class="act" data-act="2" data-act-id="the-system" id="act-the-system"
+         style="background:var(--clr-cream-50);overflow:hidden">
+      <div style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div style="position:absolute;bottom:0;left:0;width:100%;overflow:hidden">
+        <svg id="tm-svg" viewBox="0 -70 1440 842" style="display:block;width:100%;height:auto">
+          <defs>
+            <clipPath id="clip-sil" clipPathUnits="userSpaceOnUse">
+              <path d="M183.2,680 L185.5,668.1 L188,656.5 L191,645.2 L193.4,633.7 L199,623.7 L197.3,610.6 L201.2,600 L206.2,588.9 L206.2,575.2 L212.1,564.5 L216.4,553.1 L217.8,540 L218.5,527.2 L220.9,515.1 L227.4,504.4 L229,491.9 L229.2,478.7 L234.8,467.5 L237.1,455 L242.4,442.7 L241.7,428.4 L249,416.6 L253,403.7 L255.1,390 L255,375.7 L261.4,363.6 L264.9,350.4 L275.9,339.8 L272.6,324.4 L278.3,312.1 L285,300 L288.2,289.1 L297.5,281.3 L300,270 L300.2,257 L312.5,248.6 L310.2,234.7 L319.3,225.1 L323.5,213.6 L322,200 L330,190 L332,176 L343.1,165.9 L344.4,151.6 L352,140 L360.8,129.5 L360.3,114.6 L371.1,105.1 L378.2,93.8 L380,80 L380.9,94.9 L391.9,106.6 L391.3,122 L398,135 L398,147.3 L402.1,158.4 L411.4,167.8 L412,180 L413.5,192.6 L414.9,205.3 L425.1,215.3 L429,227.2 L430,240 L430.6,255 L441.4,266.7 L446.7,280.2 L448,295 L455.5,305.5 L460.7,317 L462,330 L469,341.5 L470,355 L483.1,349.3 L492,338 L503.2,332.5 L510,322 L519.8,313.7 L532,310 L544.7,307.8 L555,300 L559.5,311.4 L564.7,322.4 L575,330 L584,341.1 L582.5,356.3 L590,368 L592.1,379.9 L595.8,390.9 L608.2,397.8 L608.8,410 L611.8,420.9 L618.7,429.5 L620.3,440.8 L625.7,450 L633.3,462.8 L635.9,478 L644.6,490 L657,486 L662.9,494.4 L665.3,505 L665.7,519.2 L671.1,530.9 L671.4,545 L670.7,557.1 L672.8,567.9 L673.1,579.6 L676.3,590 L675.9,602.1 L677.2,613.5 L679.5,624.5 L683.3,635 L685.9,646.8 L692.1,656.6 L696.5,667.7 L699.8,680 L183.2,680 Z"></path>
+            </clipPath>
+            <clipPath id="clip-b1" clipPathUnits="userSpaceOnUse"><path d="M0,60 L900,60 L900,255.1 L825,255.7 L750,256.2 L675,256.6 L600,256.9 L525,257 L450,257 L375,256.8 L300,256.5 L225,256 L150,255.4 L75,254.7 L0,254 Z"></path></clipPath>
+            <clipPath id="clip-b2" clipPathUnits="userSpaceOnUse"><path d="M0,254 L75,254.7 L150,255.4 L225,256 L300,256.5 L375,256.8 L450,257 L525,257 L600,256.9 L675,256.6 L750,256.2 L825,255.7 L900,255.1 L900,375.4 L825,376.1 L750,376.8 L675,377.7 L600,378.6 L525,379.5 L450,380.5 L375,381.4 L300,382.4 L225,383.2 L150,384 L75,384.6 L0,385.2 Z"></path></clipPath>
+            <clipPath id="clip-b3" clipPathUnits="userSpaceOnUse"><path d="M0,385.2 L75,384.6 L150,384 L225,383.2 L300,382.4 L375,381.4 L450,380.5 L525,379.5 L600,378.6 L675,377.7 L750,376.8 L825,376.1 L900,375.4 L900,512.8 L825,512.5 L750,512.2 L675,512 L600,512 L525,512.1 L450,512.3 L375,512.6 L300,513.1 L225,513.6 L150,514.2 L75,515 L0,515.8 Z"></path></clipPath>
+            <clipPath id="clip-b4" clipPathUnits="userSpaceOnUse"><path d="M0,515.8 L75,515 L150,514.2 L225,513.6 L300,513.1 L375,512.6 L450,512.3 L525,512.1 L600,512 L675,512 L750,512.2 L825,512.5 L900,512.8 L900,680 L0,680 Z"></path></clipPath>
+            <clipPath id="clip-bed" clipPathUnits="userSpaceOnUse"><rect x="30" y="680" width="830" height="92"></rect></clipPath>
+            <path id="sil-line" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter" d="M183.2,680 L185.5,668.1 L188,656.5 L191,645.2 L193.4,633.7 L199,623.7 L197.3,610.6 L201.2,600 L206.2,588.9 L206.2,575.2 L212.1,564.5 L216.4,553.1 L217.8,540 L218.5,527.2 L220.9,515.1 L227.4,504.4 L229,491.9 L229.2,478.7 L234.8,467.5 L237.1,455 L242.4,442.7 L241.7,428.4 L249,416.6 L253,403.7 L255.1,390 L255,375.7 L261.4,363.6 L264.9,350.4 L275.9,339.8 L272.6,324.4 L278.3,312.1 L285,300 L288.2,289.1 L297.5,281.3 L300,270 L300.2,257 L312.5,248.6 L310.2,234.7 L319.3,225.1 L323.5,213.6 L322,200 L330,190 L332,176 L343.1,165.9 L344.4,151.6 L352,140 L360.8,129.5 L360.3,114.6 L371.1,105.1 L378.2,93.8 L380,80 L380.9,94.9 L391.9,106.6 L391.3,122 L398,135 L398,147.3 L402.1,158.4 L411.4,167.8 L412,180 L413.5,192.6 L414.9,205.3 L425.1,215.3 L429,227.2 L430,240 L430.6,255 L441.4,266.7 L446.7,280.2 L448,295 L455.5,305.5 L460.7,317 L462,330 L469,341.5 L470,355 L483.1,349.3 L492,338 L503.2,332.5 L510,322 L519.8,313.7 L532,310 L544.7,307.8 L555,300 L559.5,311.4 L564.7,322.4 L575,330 L584,341.1 L582.5,356.3 L590,368 L592.1,379.9 L595.8,390.9 L608.2,397.8 L608.8,410 L611.8,420.9 L618.7,429.5 L620.3,440.8 L625.7,450 L633.3,462.8 L635.9,478 L644.6,490 L657,486 L662.9,494.4 L665.3,505 L665.7,519.2 L671.1,530.9 L671.4,545 L670.7,557.1 L672.8,567.9 L673.1,579.6 L676.3,590 L675.9,602.1 L677.2,613.5 L679.5,624.5 L683.3,635 L685.9,646.8 L692.1,656.6 L696.5,667.7 L699.8,680"></path>
+          </defs>
+
+          <!-- S0 OVERLAY: isoline field + elevation rail + SUMMIT caret (closed state only) -->
+          <g id="tm-s0-overlay" style="transition:opacity 320ms ease;opacity:1">
+            <g clip-path="url(#clip-sil)" fill="none" stroke="#D5CFC4" stroke-width="1" opacity="0.65">
+              <path d="M183,625 Q 330,602 490,618 Q 630,632 700,620"/>
+              <path d="M196,525 Q 332,500 476,513 Q 615,527 683,518"/>
+              <path d="M212,422 Q 334,392 458,406 Q 594,422 664,418"/>
+              <path d="M238,322 Q 332,287 440,301 Q 562,318 638,320"/>
+              <path d="M260,222 Q 333,186 416,199 Q 508,215 578,220"/>
+              <path d="M285,140 Q 347,111 400,124 Q 438,134 460,142"/>
+            </g>
+            <line x1="156" y1="96" x2="156" y2="660" stroke="#C4BCAD" stroke-width="1" opacity="0.5"/>
+            <line x1="150" y1="196" x2="163" y2="196" stroke="#8F8676" stroke-width="1.2"/>
+            <text x="169" y="200" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#A79F92">2175</text>
+            <line x1="150" y1="320" x2="163" y2="320" stroke="#8F8676" stroke-width="1.2"/>
+            <text x="169" y="324" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#A79F92">1800</text>
+            <line x1="150" y1="446" x2="163" y2="446" stroke="#8F8676" stroke-width="1.2"/>
+            <text x="169" y="450" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#A79F92">1400</text>
+            <g fill="none" stroke="#7A1F2B" stroke-width="1.4"><path d="M373,74 l7,-12 l7,12"/></g>
+            <text x="396" y="60" font-family="'IBM Plex Mono',monospace" font-size="11.5" letter-spacing="0.07em" fill="#7A1F2B">SUMMIT · 2175</text>
+          </g>
+
+          <!-- STRATUM 5 · SUPPORT (bedrock) -->
+          <g id="tm-slab5" style="transition:transform 640ms cubic-bezier(.16,1,.3,1);transform:translateY(0px)">
+            <g clip-path="url(#clip-bed)">
+              <rect x="30" y="680" width="830" height="92" fill="#C9C0AF"></rect>
+              <g stroke="#B3A994" stroke-width="1">
+                <line x1="30" y1="702" x2="860" y2="702"></line>
+                <line x1="30" y1="724" x2="860" y2="724"></line>
+                <line x1="30" y1="746" x2="860" y2="746"></line>
+              </g>
+              <g stroke="#B3A994" stroke-width="1" opacity="0.55">
+                <line x1="150" y1="680" x2="120" y2="772"></line>
+                <line x1="360" y1="680" x2="330" y2="772"></line>
+                <line x1="560" y1="680" x2="530" y2="772"></line>
+                <line x1="740" y1="680" x2="710" y2="772"></line>
+              </g>
+            </g>
+            <line x1="30" y1="680" x2="860" y2="680" stroke="#8F8676" stroke-width="1.8"></line>
+          </g>
+
+          <!-- STRATUM 4 · INNER SYSTEMS -->
+          <g id="tm-slab4" style="transition:transform 640ms cubic-bezier(.16,1,.3,1);transform:translateY(0px)">
+            <g clip-path="url(#clip-sil)"><g clip-path="url(#clip-b4)">
+              <rect x="0" y="500" width="900" height="200" fill="#E1DACC"></rect>
+              <path id="tm-cb4" d="" fill="none" stroke="#C6BFB1" stroke-width="1" opacity="0.8"></path>
+              <g id="tm-cells" opacity="0.25" style="transition:opacity 500ms ease" stroke="#B4AC9B" stroke-width="1">
+                <line x1="255" y1="500" x2="255" y2="680"></line>
+                <line x1="345" y1="500" x2="345" y2="680"></line>
+                <line x1="435" y1="500" x2="435" y2="680"></line>
+                <line x1="525" y1="500" x2="525" y2="680"></line>
+                <line x1="615" y1="500" x2="615" y2="680"></line>
+              </g>
+              <path d="M0,515.8 L75,515 L150,514.2 L225,513.6 L300,513.1 L375,512.6 L450,512.3 L525,512.1 L600,512 L675,512 L750,512.2 L825,512.5 L900,512.8" fill="none" stroke="#A9A192" stroke-width="1.4"></path>
+              <line x1="183" y1="680" x2="700" y2="680" stroke="#8F8676" stroke-width="1.6"></line>
+              <use href="#sil-line" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter"></use>
+            </g></g>
+          </g>
+
+          <!-- STRATUM 3 · BASELINE -->
+          <g id="tm-slab3" style="transition:transform 640ms cubic-bezier(.16,1,.3,1);transform:translateY(0px)">
+            <g clip-path="url(#clip-sil)"><g clip-path="url(#clip-b3)">
+              <rect x="0" y="378" width="900" height="140" fill="#F0E4DE"></rect>
+              <path id="tm-cb3" d="" fill="none" stroke="#D3BFB9" stroke-width="1" opacity="0.9"></path>
+              <path d="M0,385.2 L75,384.6 L150,384 L225,383.2 L300,382.4 L375,381.4 L450,380.5 L525,379.5 L600,378.6 L675,377.7 L750,376.8 L825,376.1 L900,375.4" fill="none" stroke="#B99E97" stroke-width="1.4"></path>
+              <path d="M0,515.8 L75,515 L150,514.2 L225,513.6 L300,513.1 L375,512.6 L450,512.3 L525,512.1 L600,512 L675,512 L750,512.2 L825,512.5 L900,512.8" fill="none" stroke="#B99E97" stroke-width="1.4"></path>
+              <use href="#sil-line" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter"></use>
+            </g></g>
+          </g>
+
+          <!-- STRATUM 2 · GOALS -->
+          <g id="tm-slab2" style="transition:transform 640ms cubic-bezier(.16,1,.3,1);transform:translateY(0px)">
+            <g clip-path="url(#clip-sil)"><g clip-path="url(#clip-b2)">
+              <rect x="0" y="250" width="900" height="136" fill="#E8E2D7"></rect>
+              <path id="tm-cb2" d="" fill="none" stroke="#C6BFB1" stroke-width="1" opacity="0.8"></path>
+              <path d="M0,254 L75,254.7 L150,255.4 L225,256 L300,256.5 L375,256.8 L450,257 L525,257 L600,256.9 L675,256.6 L750,256.2 L825,255.7 L900,255.1" fill="none" stroke="#A9A192" stroke-width="1.4"></path>
+              <path d="M0,385.2 L75,384.6 L150,384 L225,383.2 L300,382.4 L375,381.4 L450,380.5 L525,379.5 L600,378.6 L675,377.7 L750,376.8 L825,376.1 L900,375.4" fill="none" stroke="#A9A192" stroke-width="1.4"></path>
+              <use href="#sil-line" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter"></use>
+            </g></g>
+          </g>
+
+          <!-- STRATUM 1 · DECISIONS (summit) -->
+          <g id="tm-slab1" style="transition:transform 640ms cubic-bezier(.16,1,.3,1);transform:translateY(0px)">
+            <g clip-path="url(#clip-sil)"><g clip-path="url(#clip-b1)">
+              <rect x="0" y="60" width="900" height="200" fill="#ECE7DD"></rect>
+              <path id="tm-cb1" d="" fill="none" stroke="#C6BFB1" stroke-width="1" opacity="0.8"></path>
+              <path d="M0,254 L75,254.7 L150,255.4 L225,256 L300,256.5 L375,256.8 L450,257 L525,257 L600,256.9 L675,256.6 L750,256.2 L825,255.7 L900,255.1" fill="none" stroke="#A9A192" stroke-width="1.4"></path>
+              <use href="#sil-line" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter"></use>
+            </g></g>
+          </g>
+
+          <!-- CALLOUT LABEL · DECISIONS (moves with slab 1) -->
+          <g id="tm-lbl-grp1" style="transition:transform 640ms cubic-bezier(.16,1,.3,1),opacity 320ms ease 160ms;transform:translateY(0px);opacity:0">
+            <g stroke="#6E675C" stroke-width="1" fill="none"><path d="M373,74 l7,-12 l7,12"></path></g>
+            <text x="394" y="62" font-family="'IBM Plex Mono',monospace" font-size="12" letter-spacing="0.04em" fill="#6E675C">SUMMIT</text>
+            <line x1="432" y1="200" x2="464" y2="200" stroke="#7A1F2B" stroke-width="1.2"></line>
+            <circle cx="432" cy="200" r="3" fill="#7A1F2B"></circle>
+            <text x="474" y="208" font-family="Archivo,sans-serif" font-weight="700" font-size="26" letter-spacing="0.02em" fill="#7A1F2B">DECISIONS</text>
+            <text x="475" y="231" font-family="'IBM Plex Mono',monospace" font-size="15" letter-spacing="0.02em" fill="#6E675C">the stated question</text>
+          </g>
+
+          <!-- CALLOUT LABEL · GOALS (moves with slab 2) -->
+          <g id="tm-lbl-grp2" style="transition:transform 640ms cubic-bezier(.16,1,.3,1),opacity 320ms ease 160ms;transform:translateY(0px);opacity:0">
+            <line x1="600" y1="340" x2="652" y2="340" stroke="#7A1F2B" stroke-width="1.2"></line>
+            <circle cx="600" cy="340" r="3" fill="#7A1F2B"></circle>
+            <text x="662" y="348" font-family="Archivo,sans-serif" font-weight="700" font-size="26" letter-spacing="0.02em" fill="#7A1F2B">GOALS</text>
+            <text x="663" y="371" font-family="'IBM Plex Mono',monospace" font-size="15" letter-spacing="0.02em" fill="#6E675C">what it's about</text>
+          </g>
+
+          <!-- CALLOUT LABEL · BASELINE (moves with slab 3) -->
+          <g id="tm-lbl-grp3" style="transition:transform 640ms cubic-bezier(.16,1,.3,1),opacity 320ms ease 160ms;transform:translateY(0px);opacity:0">
+            <line x1="662" y1="455" x2="690" y2="455" stroke="#7A1F2B" stroke-width="1.2"></line>
+            <circle cx="662" cy="455" r="3" fill="#7A1F2B"></circle>
+            <text x="700" y="449" font-family="Archivo,sans-serif" font-weight="700" font-size="26" letter-spacing="0.02em" fill="#7A1F2B">BASELINE</text>
+            <text x="701" y="472" font-family="'IBM Plex Mono',monospace" font-size="15" letter-spacing="0.02em" fill="#6E675C">where you decide</text>
+          </g>
+
+          <!-- CALLOUT LABEL · INNER SYSTEMS (moves with slab 4) -->
+          <g id="tm-lbl-grp4" style="transition:transform 640ms cubic-bezier(.16,1,.3,1),opacity 320ms ease 160ms;transform:translateY(0px);opacity:0">
+            <circle cx="225" cy="560" r="3" fill="#7A1F2B"></circle>
+            <text x="239" y="568" font-family="Archivo,sans-serif" font-weight="700" font-size="26" letter-spacing="0.02em" fill="#7A1F2B">INNER SYSTEMS</text>
+            <text x="240" y="591" font-family="'IBM Plex Mono',monospace" font-size="15" letter-spacing="0.02em" fill="#6E675C">six domains → atoms</text>
+          </g>
+
+          <!-- CALLOUT LABEL · SUPPORT (moves with bedrock) -->
+          <g id="tm-lbl-grp5" style="transition:transform 640ms cubic-bezier(.16,1,.3,1),opacity 320ms ease 160ms;transform:translateY(0px);opacity:0">
+            <circle cx="84" cy="695" r="3" fill="#7A1F2B"></circle>
+            <text x="98" y="709" font-family="Archivo,sans-serif" font-weight="700" font-size="26" letter-spacing="0.02em" fill="#7A1F2B">SUPPORT</text>
+            <text x="99" y="732" font-family="'IBM Plex Mono',monospace" font-size="15" letter-spacing="0.02em" fill="#6E675C">verified professionals</text>
+          </g>
+        </svg>
+      </div>
+
+        <!-- RIGHT PANEL -->
+        <div style="position:absolute;left:63%;right:2.5%;top:9%;display:flex;flex-direction:column;gap:0">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · THE MOUNTAIN</div>
+          <!-- STATUS PLATE -->
+          <div id="tm-plate" style="margin-top:18px;display:inline-flex;align-items:center;gap:10px;padding:5px 14px 5px 10px;border:1px solid #C4BCAD;border-radius:2px;align-self:flex-start">
+            <span style="width:6px;height:6px;border-radius:50%;background:#7A1F2B;flex-shrink:0"></span>
+            <span id="tm-plate-n" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7A1F2B;letter-spacing:0.06em">S0</span>
+            <span id="tm-plate-t" style="font-family:'Hanken Grotesk',sans-serif;font-size:20px;font-weight:500;color:#141414;line-height:1.2">CLOSED</span>
+          </div>
+          <h2 id="tm-cur-t" style="margin:14px 0 0;font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(22px,2.6vw,38px);letter-spacing:0.01em;color:#141414;line-height:1.02;display:none"></h2>
+          <p id="tm-cur-d" style="margin:14px 0 0;font-family:'Hanken Grotesk',sans-serif;font-size:15px;line-height:1.55;color:#4A453D;max-width:300px">The whole mountain — quiet and complete. One question, not yet opened.</p>
+          <p id="tm-cur-body" style="margin:16px 0 0;font-family:'Hanken Grotesk',sans-serif;font-size:14px;line-height:1.65;color:#6E675C;max-width:320px;display:none"></p>
+          <div style="display:flex;gap:8px;margin-top:24px">
+            <button class="tm-btn" onclick="step(-1)" style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8249;</button>
+            <button class="tm-btn" onclick="step(1)"  style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8250;</button>
+          </div>
+          <div style="display:flex;flex-direction:column;margin-top:26px;border-top:1px solid #D9D3C8">
+            <div class="tm-row" onclick="tmJump(1)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tm-step-dot-0" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tm-step-lbl-0" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">DECISIONS</span>
+            </div>
+            <div class="tm-row" onclick="tmJump(2)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tm-step-dot-1" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tm-step-lbl-1" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">GOALS</span>
+            </div>
+            <div class="tm-row" onclick="tmJump(3)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tm-step-dot-2" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tm-step-lbl-2" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">BASELINE</span>
+            </div>
+            <div class="tm-row" onclick="tmJump(4)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tm-step-dot-3" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tm-step-lbl-3" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">INNER SYSTEMS</span>
+            </div>
+            <div class="tm-row" onclick="tmJump(5)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tm-step-dot-4" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tm-step-lbl-4" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">SUPPORT</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ACT 3 · HOW IT WORKS -->
+    <div class="act" data-act="3" data-act-id="how-it-works" id="act-how-it-works"
+         style="background:var(--clr-cream-50);overflow:hidden">
+
+      <!-- ── SCENE 1 · TRIANGULATION (steps 0–3) ── -->
+      <div id="hw-tri" class="hw-scene">
+        <span style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;height:26px;padding:0 12px;background:#7A1F2B;color:#F2EFE9;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;border-radius:2px;z-index:2">LIVE TODAY</span>
+
+        <!-- Left 62% scene, pinned to bottom -->
+        <div style="position:absolute;bottom:0;left:0;width:62%;overflow:hidden;container-type:inline-size">
+          <svg id="tri-svg" viewBox="0 0 900 800" style="display:block;width:100%;height:auto">
+            <g fill="none" stroke="#E4DED2" stroke-width="1">
+              <path d="M-20,620 Q 420,530 920,600"></path>
+              <path d="M-20,390 Q 440,310 920,380"></path>
+              <path d="M-20,170 Q 400,110 920,160"></path>
+            </g>
+            <!-- THREADS -->
+            <line x1="450" y1="352" x2="450" y2="196" stroke="#C9C2B4" stroke-width="1"></line>
+            <path id="tri-tG" d="M418,400 L196,596" fill="none" stroke="#C9C2B4" stroke-width="1" stroke-dasharray="297" style="stroke-dashoffset:297"></path>
+            <path id="tri-tB" d="M482,400 L704,596" fill="none" stroke="#C9C2B4" stroke-width="1" stroke-dasharray="297" style="stroke-dashoffset:297"></path>
+            <path id="tri-tC" d="M660,390 L692,390 L692,330" fill="none" stroke="#7A1F2B" stroke-width="1.5" stroke-dasharray="92" style="stroke-dashoffset:92"></path>
+            <path id="tri-tCa" d="M686,340 L692,328 L698,340" fill="none" stroke="#7A1F2B" stroke-width="1.5" style="opacity:0;transition:opacity 400ms ease 550ms"></path>
+            <!-- QUESTION BOX -->
+            <rect x="240" y="352" width="420" height="76" rx="2" fill="#ECE7DD" stroke="#8F8676" stroke-width="1.4"></rect>
+            <line id="tri-hl1" x1="421" y1="412" x2="493" y2="412" stroke="#7A1F2B" stroke-width="2" style="opacity:0;transition:opacity 400ms ease 100ms"></line>
+            <line id="tri-hl2" x1="536" y1="412" x2="580" y2="412" stroke="#7A1F2B" stroke-width="2" style="opacity:0;transition:opacity 400ms ease 100ms"></line>
+            <!-- TEMPO MARKS -->
+            <g id="tri-tempo" stroke="#A6524C" stroke-width="1.6" style="opacity:0;transition:opacity 400ms ease">
+              <line x1="292" y1="446" x2="292" y2="458"></line><line x1="308" y1="450" x2="308" y2="458"></line>
+              <line x1="322" y1="443" x2="322" y2="458"></line><line x1="338" y1="451" x2="338" y2="458"></line>
+              <line x1="352" y1="446" x2="352" y2="458"></line><line x1="368" y1="440" x2="368" y2="458"></line>
+              <line x1="382" y1="450" x2="382" y2="458"></line>
+              <text x="398" y="457" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#A6524C">tempo ↑</text>
+            </g>
+            <!-- NODES -->
+            <g id="tri-nQ" style="opacity:1;transition:opacity 400ms ease">
+              <circle cx="450" cy="170" r="9" fill="none" stroke="#7A1F2B" stroke-width="1.8"></circle>
+              <circle cx="450" cy="170" r="3" fill="#7A1F2B"></circle>
+              <text x="450" y="136" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="700" font-size="24" letter-spacing="0.03em" fill="#141414">QUESTION</text>
+              <text x="450" y="212" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#6E675C">what stands behind it</text>
+            </g>
+            <g id="tri-nG" style="opacity:0.35;transition:opacity 400ms ease">
+              <circle cx="180" cy="614" r="9" fill="none" stroke="#7A1F2B" stroke-width="1.8"></circle>
+              <circle id="tri-nGdot" cx="180" cy="614" r="3" fill="#7A1F2B" style="opacity:0;transition:opacity 400ms ease 400ms"></circle>
+              <text x="180" y="662" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="700" font-size="24" letter-spacing="0.03em" fill="#141414">GOALS</text>
+              <text x="180" y="688" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#6E675C">what it is about</text>
+            </g>
+            <g id="tri-nB" style="opacity:0.35;transition:opacity 400ms ease">
+              <circle cx="720" cy="614" r="9" fill="none" stroke="#7A1F2B" stroke-width="1.8"></circle>
+              <circle id="tri-nBdot" cx="720" cy="614" r="3" fill="#7A1F2B" style="opacity:0;transition:opacity 400ms ease 400ms"></circle>
+              <text x="720" y="662" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="700" font-size="24" letter-spacing="0.03em" fill="#141414">BASELINE</text>
+              <text x="720" y="688" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#6E675C">the state it is asked from</text>
+            </g>
+            <!-- ANNOTATIONS -->
+            <text id="tri-annG" x="255" y="480" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#7A1F2B" style="opacity:0;transition:opacity 400ms ease 450ms">vector detected: career ↔ family</text>
+            <text id="tri-annB" x="530" y="530" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#7A1F2B" style="opacity:0;transition:opacity 400ms ease 450ms">state check: agitated — grounding first</text>
+          </svg>
+          <!-- Typed question overlay -->
+          <div id="tri-typed" style="position:absolute;left:26.7%;top:44%;width:46.6%;height:9.5%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:2.5cqw;color:#141414;white-space:nowrap;pointer-events:none"></div>
+          <!-- System reply (F4) -->
+          <div id="tri-reply" style="position:absolute;left:69.5%;top:14.5%;width:27%;border-left:1.5px solid #7A1F2B;padding-left:14px;font-family:'IBM Plex Mono',monospace;font-size:1.78cqw;line-height:1.6;color:#141414;pointer-events:none;opacity:0;transition:opacity 400ms ease"></div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div style="position:absolute;left:63%;right:2.5%;top:9%;display:flex;flex-direction:column">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · TRIANGULATION</div>
+          <div style="margin-top:26px;min-height:140px">
+            <p id="tri-status" class="scene-status">A question arrives as stated. Nothing is answered yet.</p>
+            <p id="tri-secondary" style="margin:14px 0 0;font-family:'Hanken Grotesk',sans-serif;font-size:15px;line-height:1.55;color:#6E675C;opacity:0;transition:opacity 400ms ease 300ms;max-width:300px">The longer the system knows a person, the more it reads from fewer words.</p>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button onclick="step(-1)" style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8249;</button>
+            <button onclick="step(1)"  style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8250;</button>
+          </div>
+          <div style="display:flex;flex-direction:column;margin-top:22px;border-top:1px solid #D9D3C8">
+            <div class="hw-row" onclick="triJump(0)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tri-dot-0" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tri-lbl-0" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">THE QUESTION</span>
+            </div>
+            <div class="hw-row" onclick="triJump(1)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tri-dot-1" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tri-lbl-1" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">READ AGAINST GOALS</span>
+            </div>
+            <div class="hw-row" onclick="triJump(2)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tri-dot-2" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tri-lbl-2" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">READ AGAINST BASELINE</span>
+            </div>
+            <div class="hw-row" onclick="triJump(3)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6">
+              <span id="tri-dot-3" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="tri-lbl-3" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">THE COUNTER-MOVE</span>
+            </div>
+          </div>
+        </div>
+      </div><!-- /#hw-tri -->
+
+      <!-- ── SCENE 2 · INNER SYSTEMS (steps 4–7) ── -->
+      <div id="hw-is" class="hw-scene">
+        <div id="is-plate" style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;gap:10px;padding:5px 14px 5px 10px;border:1px solid #C4BCAD;border-radius:2px;z-index:2;background:var(--clr-cream-50)">
+          <span style="width:6px;height:6px;border-radius:50%;background:#7A1F2B;flex-shrink:0"></span>
+          <span id="is-plate-n" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7A1F2B;letter-spacing:0.06em">F1</span>
+          <span id="is-plate-t" style="font-family:'Hanken Grotesk',sans-serif;font-size:20px;font-weight:500;color:#141414;line-height:1.2">SIX DOMAINS</span>
+        </div>
+
+        <!-- Full-width SVG pinned to bottom -->
+        <div style="position:absolute;bottom:0;left:0;width:100%;overflow:hidden">
+          <svg id="is-svg" viewBox="0 10 1440 800" style="display:block;width:100%;height:auto">
+            <g fill="none" stroke="#E4DED2" stroke-width="1">
+              <path d="M-20,640 Q 420,540 920,620"></path>
+              <path d="M-20,420 Q 440,330 920,410"></path>
+              <path d="M-20,200 Q 400,130 920,190"></path>
+            </g>
+            <g id="is-links"></g>
+            <g id="is-domains"></g>
+            <g id="is-subs"></g>
+            <g id="is-domain-labels"></g>
+            <g id="is-sub-labels"></g>
+            <g id="is-atoms"></g>
+            <g id="is-mass"></g>
+            <g id="is-band-lines"></g>
+            <path id="is-sil" d="" fill="none" stroke="#7A1F2B" stroke-width="2.2" stroke-linejoin="miter" style="opacity:0"></path>
+          </svg>
+        </div>
+
+        <!-- Status line overlaid bottom-left -->
+        <div id="is-status" class="scene-status" style="position:absolute;left:4%;bottom:9%;max-width:52%;pointer-events:none"></div>
+
+        <!-- RIGHT PANEL -->
+        <div style="position:absolute;left:63%;right:2.5%;top:9%;display:flex;flex-direction:column">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · INNER SYSTEMS</div>
+          <div style="display:flex;align-items:baseline;gap:12px;margin-top:16px">
+            <span id="is-frame-n" style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#A6524C">F1</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92">/ 04</span>
+          </div>
+          <h2 id="is-frame-t" style="margin:4px 0 0;font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,34px);letter-spacing:0.01em;color:#141414;line-height:1.02">SIX DOMAINS</h2>
+          <p id="is-frame-d" style="margin:12px 0 0;font-family:'Hanken Grotesk',sans-serif;font-size:15px;line-height:1.55;color:#4A453D;max-width:300px">Six domains of the inner map. Every cell empty — outline only.</p>
+          <div style="display:flex;gap:8px;margin-top:18px">
+            <button onclick="step(-1)" style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8249;</button>
+            <button onclick="step(1)"  style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">&#8250;</button>
+          </div>
+          <div style="display:flex;flex-direction:column;margin-top:18px;border-top:1px solid #D9D3C8">
+            <div class="hw-row" onclick="isJump(0)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #E7E1D6">
+              <span id="is-dot-0" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="is-lbl-0" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">SIX DOMAINS</span>
+            </div>
+            <div class="hw-row" onclick="isJump(1)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #E7E1D6">
+              <span id="is-dot-1" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="is-lbl-1" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">EXPANSION</span>
+            </div>
+            <div class="hw-row" onclick="isJump(2)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #E7E1D6">
+              <span id="is-dot-2" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="is-lbl-2" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">LIVING MAP</span>
+            </div>
+            <div class="hw-row" onclick="isJump(3)" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #E7E1D6">
+              <span id="is-dot-3" style="width:7px;height:7px;border-radius:50%;background:#CFC8BB;flex-shrink:0"></span>
+              <span id="is-lbl-3" style="font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;color:#A79F92">CONDENSATION</span>
+            </div>
+          </div>
+          <div style="margin-top:18px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;color:#7A1F2B;margin-bottom:6px">HOW THE MAP FILLS</div>
+            <p style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-size:14px;line-height:1.55;color:#4A453D">The map fills two ways. In conversation — the system learns the person from what they say. And by hand — the person works through goals, connects trackers, adds medical data, brings in specialists' findings. Every atom filled adds to the sum.</p>
+          </div>
+        </div>
+      </div><!-- /#hw-is -->
+
+      <!-- ── SCENE 3 · SPR DEMO (step 8) ── -->
+      <div id="hw-spr" class="hw-scene">
+        <span style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;height:26px;padding:0 12px;background:#7A1F2B;color:#F2EFE9;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;border-radius:2px;z-index:2">LIVE TODAY</span>
+
+        <!-- Left column (scrollable) -->
+        <div style="position:absolute;left:0;top:0;width:62%;bottom:0;overflow-y:auto">
+          <div style="padding:30px 0 30px 42px">
+
+            <!-- DIALOGUE WINDOW -->
+            <div style="width:90%;background:#FBF9F4;border:1px solid #8F8676;border-bottom:none;border-radius:2px 2px 0 0">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 20px;border-bottom:1px solid #D9D3C8">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;color:#6E675C">NAGARCOT · SESSION</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92">SPR v0.9</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px;padding:20px 20px 16px">
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#141414;max-width:88%;text-wrap:pretty">I'm running two projects in parallel — the company and a side venture. Should I drop one and focus?</p>
+                <div style="border-left:1.5px solid #7A1F2B;padding-left:14px;max-width:92%">
+                  <p style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:14px;line-height:1.65;color:#141414;text-wrap:pretty">Before weighing which one: what changed recently that turned this into a question today? Running two isn't new for you.</p>
+                </div>
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#141414;max-width:88%;text-wrap:pretty">True. The last month I wake up tired, and I've started missing small things — in both.</p>
+                <div style="border-left:1.5px solid #7A1F2B;padding-left:14px;max-width:92%">
+                  <p style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:14px;line-height:1.65;color:#141414;text-wrap:pretty">Then the question under your question is load, and both projects are paying for it. Dropping one now would be deciding from depletion. First move this week: name what you cut to recover margin — then we weigh the projects from a clear head.</p>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;padding:0 20px 16px">
+                <div style="flex:1;height:40px;border:1px solid #C4BCAD;border-radius:2px;display:flex;align-items:center;padding:0 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#A79F92">Type your question…</div>
+                <div style="width:40px;height:40px;border:1px solid #7A1F2B;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#7A1F2B;font-size:17px">↑</div>
+              </div>
+            </div>
+
+            <!-- STRATA ACCORDION (flush under window) -->
+            <div id="spr-strata" style="width:90%;border-top:2px solid #8F8676"></div>
+
+            <!-- CTA -->
+            <div style="width:90%;display:flex;justify-content:center;margin-top:22px">
+              <a id="spr-live" href="#spr-live" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
+            </div>
+
+          </div>
+        </div><!-- /left column -->
+
+        <!-- RIGHT PANEL -->
+        <div style="position:absolute;left:65%;right:2.5%;top:9%;display:flex;flex-direction:column">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · SPR ENGINE</div>
+          <div style="margin-top:26px;min-height:110px">
+            <p id="spr-status" style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty">The working engine — and the five methodological strata it stands on.</p>
+          </div>
+          <div id="spr-stepper" style="display:flex;flex-direction:column;margin-top:10px;border-top:1px solid #D9D3C8"></div>
+        </div>
+
+      </div><!-- /#hw-spr -->
+
+    </div><!-- /#act-how-it-works -->
+
+    <!-- ACT 4 · THE MAP — Personal Map.dc.html -->
+    <div class="act" data-act="4" data-act-id="the-map" id="act-the-map"
+         style="background:var(--clr-cream-50);overflow:hidden">
+      <div id="pm-plate" style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;gap:10px;padding:5px 14px 5px 10px;border:1px solid #C4BCAD;border-radius:2px;z-index:2;background:var(--clr-cream-50)">
+        <span style="width:6px;height:6px;border-radius:50%;background:#7A1F2B;flex-shrink:0"></span>
+        <span id="pm-plate-n" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7A1F2B;letter-spacing:0.06em">S1</span>
+        <span id="pm-plate-t" style="font-family:'Hanken Grotesk',sans-serif;font-size:20px;font-weight:500;color:#141414;line-height:1.2">ON THE MAP</span>
+      </div>
+
+      <!-- Left 62%: topographic map, bottom-anchored -->
+      <div style="position:absolute;bottom:0;left:0;width:62%;overflow:hidden">
+        <svg id="pm-svg" viewBox="0 20 900 780" style="display:block;width:100%;height:auto">
+          <defs><clipPath id="pm-clip"><path id="pm-sil-clip"/></clipPath></defs>
+          <path id="pm-sil" fill="#EFEAE0" stroke="#8F8676" stroke-width="1.2" stroke-linejoin="miter"/>
+          <g clip-path="url(#pm-clip)">
+            <path id="pm-contours" fill="none" stroke="#C6BFB1" stroke-width="1" opacity="0.85"/>
+          </g>
+          <text x="322" y="238" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#A79F92">2175</text>
+          <text x="500" y="430" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#A79F92">1800</text>
+          <text x="255" y="520" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#A79F92">1400</text>
+          <path id="pm-traveled" fill="none" stroke="#6E675C" stroke-width="1.4"/>
+          <path id="pm-ahead-a" fill="none" stroke="#6E675C" stroke-width="1.2" stroke-dasharray="5 5"/>
+          <path d="M330,538 L410,474 L466,398" fill="none" stroke="#6E675C" stroke-width="1.2" stroke-dasharray="5 5" opacity="0.8"/>
+          <g id="pm-fork1" style="transition:opacity 500ms ease;opacity:0">
+            <circle cx="330" cy="538" r="6" fill="#F2EFE9" stroke="#7A1F2B" stroke-width="1.6"/>
+            <text x="346" y="556" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#6E675C">fork · today</text>
+          </g>
+          <g id="pm-fork2" style="transition:opacity 500ms ease;opacity:0">
+            <circle cx="368" cy="420" r="6" fill="#F2EFE9" stroke="#7A1F2B" stroke-width="1.6"/>
+          </g>
+          <line id="pm-vector" stroke="#7A1F2B" stroke-width="1" stroke-dasharray="2 4"/>
+          <g>
+            <path d="M373,116 l7,-12 l7,12 z" fill="#7A1F2B" fill-opacity="0.14" stroke="#7A1F2B" stroke-width="1.4"/>
+            <text x="398" y="112" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#7A1F2B">Summit A</text>
+            <text x="398" y="132" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#A79F92">far</text>
+          </g>
+          <g>
+            <path d="M548,316 l7,-12 l7,12 z" fill="#7A1F2B" fill-opacity="0.14" stroke="#7A1F2B" stroke-width="1.4"/>
+            <text x="573" y="312" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#7A1F2B">Summit B</text>
+          </g>
+          <g>
+            <path d="M459,396 l7,-12 l7,12 z" fill="#7A1F2B" fill-opacity="0.14" stroke="#7A1F2B" stroke-width="1.4"/>
+            <text x="440" y="376" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#7A1F2B">Summit C</text>
+          </g>
+          <g id="pm-person" style="transition:transform 1000ms ease">
+            <circle r="11" fill="none" stroke="#7A1F2B" stroke-width="1.2" opacity="0.7"/>
+            <circle r="4.5" fill="#7A1F2B"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Right panel -->
+      <div style="position:absolute;left:65%;right:2.5%;top:8%;display:flex;flex-direction:column">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · THE PERSON'S MAP</div>
+        <div style="margin-top:26px;min-height:96px">
+          <p id="pm-status" style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty"></p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button onclick="step(-1)" style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">‹</button>
+          <button onclick="step(1)"  style="cursor:pointer;height:34px;width:34px;border:1px solid #C4BCAD;background:transparent;color:#6E675C;font-family:'IBM Plex Mono',monospace;font-size:15px;border-radius:2px">›</button>
+        </div>
+        <div id="pm-stepper" style="display:flex;flex-direction:column;margin-top:20px;border-top:1px solid #D9D3C8"></div>
+        <p style="margin:24px 0 0;font-family:'Hanken Grotesk',sans-serif;font-size:16px;line-height:1.6;color:#4A453D;text-wrap:pretty">When the map is filled, the work changes. The person and the system now move together: goals sit on the map as summits, every decision is a fork on the trail, every step is recorded against the vector. The person sees their movement — where they are going, by which path, and whether today's choice serves it.</p>
+      </div>
+    </div>
+
+    <!-- ACT 5 · SUPPORT — The Reach / The Rows / Specialist Loop -->
+    <div class="act" data-act="5" data-act-id="support" id="act-support"
+         style="background:var(--clr-cream-50);overflow:hidden">
+
+      <!-- Status plate — shared across all three scenes -->
+      <div id="sp-plate" style="position:absolute;top:64px;right:20px;display:inline-flex;align-items:center;gap:10px;padding:5px 14px 5px 10px;border:1px solid #C4BCAD;border-radius:2px;z-index:4;background:var(--clr-cream-50)">
+        <span style="width:6px;height:6px;border-radius:50%;background:#7A1F2B;flex-shrink:0"></span>
+        <span id="sp-plate-n" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7A1F2B;letter-spacing:0.06em">A1</span>
+        <span style="font-family:'Hanken Grotesk',sans-serif;font-size:20px;font-weight:500;color:#141414;line-height:1.2">DIRECTION</span>
+      </div>
+
+      <!-- ── SCENE A · THE REACH ── -->
+      <div id="sp-a" style="position:absolute;inset:0;display:flex;opacity:0;pointer-events:none;transition:opacity 500ms ease">
+        <!-- Left: isoline map + zone + thread -->
+        <div style="width:60%;position:relative;border-right:1px solid rgba(38,32,29,0.14);overflow:hidden">
+          <svg viewBox="0 0 864 900" style="position:absolute;inset:0;width:100%;height:100%">
+            <g fill="none" stroke="rgba(38,32,29,0.22)" stroke-width="1">
+              <path d="M 120 780 C 60 640, 100 500, 220 430 C 340 360, 420 380, 500 300 C 580 220, 700 200, 800 260"/>
+              <path d="M 170 760 C 120 650, 150 530, 260 470 C 370 410, 440 420, 510 350 C 580 280, 690 260, 780 310"/>
+              <path d="M 220 740 C 180 655, 205 560, 300 505 C 395 450, 455 460, 520 400 C 585 340, 680 320, 760 360"/>
+              <path d="M 275 715 C 245 655, 262 590, 340 540 C 418 490, 470 495, 530 445 C 590 395, 670 380, 738 410"/>
+              <path d="M 330 690 C 310 650, 322 610, 382 572 C 442 534, 484 534, 540 490 C 596 446, 660 435, 715 458"/>
+              <path d="M 388 662 C 376 638, 384 615, 424 600 C 464 585, 498 578, 548 538 C 598 498, 650 490, 692 506"/>
+            </g>
+            <!-- zone: outer glow + two stroke rings + dot -->
+            <ellipse id="sp-zone-outer" cx="560" cy="500" rx="86" ry="60" fill="rgba(122,31,43,0.10)" style="opacity:0"/>
+            <ellipse id="sp-zone-r1" cx="560" cy="500" rx="56" ry="38" fill="none" stroke="#7A1F2B" stroke-width="1" style="opacity:0"/>
+            <ellipse id="sp-zone-r2" cx="560" cy="500" rx="30" ry="20" fill="none" stroke="#7A1F2B" stroke-width="1" style="opacity:0"/>
+            <circle id="sp-zone-dot" cx="560" cy="500" r="3" fill="#7A1F2B" style="opacity:0"/>
+            <!-- hairline thread drawn by stroke-dashoffset -->
+            <path id="sp-thread" d="M 590 490 C 680 440, 760 400, 900 360"
+                  fill="none" stroke="#7A1F2B" stroke-width="1"
+                  style="stroke-dasharray:400;stroke-dashoffset:400"/>
+            <text id="sp-zone-label" x="560" y="588" text-anchor="middle"
+                  font-family="IBM Plex Mono,monospace" font-size="15" letter-spacing="2"
+                  fill="#7A1F2B" style="opacity:0">THE PLACE DIALOGUE CANNOT FIX</text>
+          </svg>
+        </div>
+        <!-- Right panel -->
+        <div style="width:40%;display:flex;flex-direction:column;justify-content:center;gap:32px;padding:0 72px;box-sizing:border-box">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.24em;color:#7A1F2B">NAGARCOT · SUPPORT</div>
+          <h2 style="margin:0;font-family:'Archivo',sans-serif;font-weight:700;font-size:clamp(22px,2.8vw,40px);line-height:1.12;color:#141414">The system reaches further</h2>
+          <div style="border-left:2px solid #7A1F2B;background:rgba(122,31,43,0.05);padding:18px 24px">
+            <div style="font-family:'Hanken Grotesk',sans-serif;font-size:18px;line-height:1.5;color:#141414;text-wrap:pretty">Some work needs a trained hand. The system brings that hand in — and grows by it.</div>
+          </div>
+          <p style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-size:16px;line-height:1.65;color:#4A453D;text-wrap:pretty">Nagarcot reads a person: it surfaces the real question, the foreign goal, the state that distorts a choice. Some of what it finds needs more than dialogue — a hormonal disorder is treated, an injury is rehabilitated, a deep knot in the psyche is worked through in person. For that, the system extends itself: it recognizes the moment, names it plainly, and brings in a verified professional. The specialist works with the person; the findings, with consent, return to the map. The system does not end where dialogue ends — it reaches further, through people.</p>
+        </div>
+      </div>
+
+      <!-- ── SCENE B · THE ROWS ── -->
+      <div id="sp-b" style="position:absolute;inset:0;display:flex;opacity:0;pointer-events:none;transition:opacity 500ms ease">
+        <!-- Left: six domain rows -->
+        <div style="width:60%;display:flex;flex-direction:column;justify-content:center;padding:0 48px 0 72px;box-sizing:border-box;border-right:1px solid rgba(38,32,29,0.14)">
+          <div style="display:flex;flex-direction:column">
+            <div id="sp-row-0" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">01</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">HEALTH</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">physicians by specialty</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">diagnostics &amp; lab work</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">endocrinology</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">cardiology</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">physiotherapy</span>
+              </div>
+            </div>
+            <div id="sp-row-1" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">02</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">ENERGY</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">nutritionists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">sleep specialists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">recovery coaches</span>
+              </div>
+            </div>
+            <div id="sp-row-2" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">03</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">PSYCHE</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">psychologists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">psychotherapists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">family therapists</span>
+              </div>
+            </div>
+            <div id="sp-row-3" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">04</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">COGNITION</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">neuropsychologists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">learning &amp; focus specialists</span>
+              </div>
+            </div>
+            <div id="sp-row-4" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">05</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">PERFORMANCE</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">strength coaches</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">rehab &amp; mobility specialists</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">career advisors</span>
+                <span class="sp-chip" style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:rgba(38,32,29,0.8);border:1px solid rgba(38,32,29,0.28);padding:5px 12px;white-space:nowrap;opacity:0">financial consultants</span>
+              </div>
+            </div>
+            <div id="sp-row-5" style="display:flex;align-items:baseline;gap:32px;border-top:1px solid rgba(38,32,29,0.18);padding:18px 0;opacity:0;transform:translateY(8px)">
+              <div style="width:180px;flex:none;display:flex;align-items:baseline;gap:14px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.12em;color:#7A1F2B">06</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;letter-spacing:0.03em;color:#141414">MEANING</div>
+              </div>
+              <div style="font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-style:italic;line-height:1.5;color:rgba(38,32,29,0.75)">mentors — and further, as the person's map demands</div>
+            </div>
+            <div id="sp-rows-footer" style="border-top:1px solid rgba(38,32,29,0.18);padding-top:16px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;line-height:1.55;color:rgba(38,32,29,0.62);font-style:italic;text-wrap:pretty;opacity:0;transform:translateY(8px)">Nagarcot connects — it does not practice. Every specialist is verified; findings return to the person's map only with consent.</div>
+          </div>
+        </div>
+        <!-- Right panel -->
+        <div style="width:40%;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:0 72px;box-sizing:border-box">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.24em;color:#7A1F2B">NAGARCOT · SUPPORT</div>
+          <h2 style="margin:0;font-family:'Archivo',sans-serif;font-weight:700;font-size:clamp(22px,2.8vw,40px);line-height:1.12;color:#141414">A circle of professionals, built like the person</h2>
+          <div style="border-left:2px solid #7A1F2B;background:rgba(122,31,43,0.05);padding:18px 24px">
+            <div style="font-family:'Hanken Grotesk',sans-serif;font-size:18px;line-height:1.5;color:#141414;text-wrap:pretty">Six domains inside — six rows of expertise outside. The circle grows as the map demands.</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;line-height:1.7;color:rgba(38,32,29,0.5)">SAME SIX AS INNER SYSTEMS — TOP-DOWN, HEALTH FIRST: THE ROWS READ AS A LIST, AND MEANING'S OPEN LINE LANDS LAST.</div>
+        </div>
+      </div>
+
+      <!-- ── SCENE C · SPECIALIST LOOP (unchanged content) ── -->
+      <div id="sp-c" style="position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity 500ms ease">
+        <!-- Left column 62%: scrollable -->
+        <div style="position:absolute;left:0;top:0;bottom:0;width:62%;overflow-y:auto">
+          <div style="padding:56px 0 72px 64px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C;margin-bottom:28px">NAGARCOT · SUPPORT · THE SPECIALIST LOOP</div>
+            <!-- Three panels -->
+            <div style="display:flex;gap:20px;padding-right:40px">
+              <div style="flex:1;min-width:0;border:1px solid #C4BCAD;border-radius:2px;padding:22px 20px;background:#F7F4EE">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;color:#7A1F2B;margin-bottom:10px">01</div>
+                <h3 style="margin:0 0 12px;font-family:'Archivo',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.02em">FOR THE PERSON</h3>
+                <p style="margin:0;font-size:16px;line-height:1.6;color:#4A453D;text-wrap:pretty">Verified specialists; booking; the session recorded and returned as substance, not a memory.</p>
+              </div>
+              <div style="flex:1;min-width:0;border:1px solid #C4BCAD;border-radius:2px;padding:22px 20px;background:#F7F4EE">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;color:#7A1F2B;margin-bottom:10px">02</div>
+                <h3 style="margin:0 0 12px;font-family:'Archivo',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.02em">FOR THE SPECIALIST</h3>
+                <p style="margin:0;font-size:16px;line-height:1.6;color:#4A453D;text-wrap:pretty">Transcript; patterns the system noticed; hypothesis support; report drafting.</p>
+              </div>
+              <div style="flex:1;min-width:0;border:1px solid #C4BCAD;border-radius:2px;padding:22px 20px;background:#F7F4EE">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;color:#7A1F2B;margin-bottom:10px">03</div>
+                <h3 style="margin:0 0 12px;font-family:'Archivo',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.02em">FOR THE MAP</h3>
+                <p style="margin:0;font-size:16px;line-height:1.6;color:#4A453D;text-wrap:pretty">With the person's consent, findings flow back into the inner map and strengthen it.</p>
+              </div>
+            </div>
+            <!-- Flow diagram -->
+            <svg viewBox="0 0 800 260" style="width:88%;height:auto;display:block;margin-top:36px">
+              <line x1="30" y1="150" x2="483" y2="150" stroke="#8F8676" stroke-width="1.2"/>
+              <line x1="547" y1="150" x2="640" y2="150" stroke="#8F8676" stroke-width="1.2"/>
+              <path d="M634,144 L646,150 L634,156" fill="none" stroke="#8F8676" stroke-width="1.2"/>
+              <circle cx="30"  cy="150" r="4" fill="#6E675C"/>
+              <text x="30"  y="180" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#4A453D">session</text>
+              <circle cx="190" cy="150" r="4" fill="#6E675C"/>
+              <text x="190" y="180" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#4A453D">transcript</text>
+              <circle cx="350" cy="150" r="4" fill="#6E675C"/>
+              <text x="350" y="180" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#4A453D">findings</text>
+              <rect x="483" y="108" width="64" height="84" rx="2" fill="#F2EFE9" stroke="#7A1F2B" stroke-width="2"/>
+              <line x1="483" y1="150" x2="503" y2="150" stroke="#7A1F2B" stroke-width="1.4"/>
+              <line x1="527" y1="150" x2="547" y2="150" stroke="#7A1F2B" stroke-width="1.4"/>
+              <circle cx="515" cy="150" r="5.5" fill="none" stroke="#7A1F2B" stroke-width="1.6"/>
+              <circle cx="515" cy="150" r="1.8" fill="#7A1F2B"/>
+              <text x="515" y="94"  text-anchor="middle" font-family="Archivo,sans-serif" font-weight="700" font-size="17" letter-spacing="0.06em" fill="#7A1F2B">CONSENT</text>
+              <text x="515" y="240" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#6E675C">nothing crosses without it</text>
+              <g transform="translate(650,96) scale(0.145)">
+                <path id="sl-sil" fill="#ECE7DD" stroke="#7A1F2B" stroke-width="10" stroke-linejoin="miter" transform="translate(-140,-310)"/>
+              </g>
+              <text x="700" y="216" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="15" fill="#4A453D">the person's map</text>
+            </svg>
+          </div>
+        </div>
+        <!-- Right panel -->
+        <div style="position:absolute;left:65%;right:2.5%;top:12%;display:flex;flex-direction:column">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · SUPPORT</div>
+          <p style="margin:26px 0 0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.6;color:#141414;text-wrap:pretty">Three sides of one loop. The person gets a verified specialist and a session that returns as substance — recorded, transcribed, kept. The specialist gets what no first appointment has: the context the system has gathered, patterns it has noticed, support in hypotheses and reporting. And the map gets stronger: findings flow back into it — through consent, and only through consent.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /#stage -->
+
+  <!-- ── PLAIN SECTIONS ── -->
+
+  <section class="plain-section" data-view="economics">
+    <h2>ECONOMICS</h2>
+    <div class="prep-label">IN PREPARATION</div>
+  </section>
+
+  <section class="plain-section" data-view="path">
+    <h2>THE PATH</h2>
+    <div class="prep-label">IN PREPARATION</div>
+  </section>
+
+  <section class="plain-section" data-view="contact">
+    <h2>CONTACT</h2>
+    <!-- copy to be provided -->
+  </section>
+
+  <!-- ── DEBUG TWEAKS PANEL (?debug only) ── -->
+  <div id="debug-panel" class="hidden">
+    <div class="dbg-label">DEBUG · PASS ENGINE</div>
+    <div>act <span id="dbg-act">0</span> / step <span id="dbg-step">0</span></div>
+    <div>view <span id="dbg-view">narrative</span></div>
+    <div>complete <span id="dbg-complete">no</span></div>
+    <div class="dbg-btns">
+      <button class="dbg-btn" id="dbg-prev">← BACK</button>
+      <button class="dbg-btn" id="dbg-next">FWD →</button>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════
+    //  NAGARCOT PASS ENGINE — implements SPEC - Linear Pass (Part B).md
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const ACTS = [
+      { id: 'cover',        steps: 1 },  // act 0
+      { id: 'nagarkot',     steps: 2 },  // act 1: State A (dark) + State B (sunrise)
+      { id: 'the-system',   steps: 6 },  // act 2: S0–S5
+      { id: 'how-it-works', steps: 9 },  // act 3: Tri F1-F4 (0-3) + IS F1-F4 (4-7) + SPR (8)
+      { id: 'the-map',      steps: 3 },  // act 4: P1–P3
+      { id: 'support',      steps: 10 }, // act 5: A1(0-1) + A2(2-7) + A3(8) + finis(9)
+    ];
+    const MAX_ACT  = ACTS.length - 1;    // 5
+    const DEBOUNCE = 420;                // ms — per spec
+
+    let passAct      = 0;
+    let passStep     = 0;
+    let passComplete = false;
+    let lastStepMs   = 0;
+    let wheelAccum   = 0;
+    let touchRefY    = null;
+    let menuIsOpen   = false;
+    let activeView   = 'narrative';
+
+    // ── Core step logic ────────────────────────────────────────────────────
+
+    function canStep() {
+      return activeView === 'narrative' && !menuIsOpen;
+    }
+
+    function step(dir) {
+      if (!canStep()) return;
+      const now = performance.now();
+      if (now - lastStepMs < DEBOUNCE) return;
+      lastStepMs = now;
+      wheelAccum = 0;
+
+      if (dir > 0) {
+        const maxStep = ACTS[passAct].steps - 1;
+        if (passStep < maxStep) {
+          passStep++;
+        } else if (passAct < MAX_ACT) {
+          passAct++;
+          passStep = 0;
+        } else {
+          // Already at final state — mark complete, idempotent
+          if (!passComplete) { passComplete = true; onPassComplete(); }
+          return;
+        }
+        // Check if we just landed on the final state
+        if (passAct === MAX_ACT && passStep === ACTS[MAX_ACT].steps - 1 && !passComplete) {
+          passComplete = true;
+          onPassComplete();
+        }
+      } else {
+        // dir < 0
+        if (passStep > 0) {
+          passStep--;
+        } else if (passAct > 0) {
+          passAct--;
+          passStep = ACTS[passAct].steps - 1; // enter act fully built
+        } else {
+          return; // at (0,0) — no-op
+        }
+      }
+
+      renderPass();
+    }
+
+    function jumpTo(actIdx) {
+      if (!passComplete) return;
+      passAct  = actIdx;
+      passStep = 0;
+      renderPass();
+    }
+
+    // ── Render ─────────────────────────────────────────────────────────────
+
+    function renderPass() {
+      // Acts
+      document.querySelectorAll('#stage .act').forEach((el, i) => {
+        const active = i === passAct;
+        el.classList.toggle('active', active);
+        if (active) {
+          // Notify act-internal components via custom event
+          el.dispatchEvent(new CustomEvent('nagarcot-pass', {
+            detail: { act: passAct, step: passStep },
+            bubbles: false
+          }));
+        }
+      });
+
+      // Rail ticks
+      document.querySelectorAll('.rail-tick').forEach((el, i) => {
+        el.classList.toggle('current', i === passAct);
+      });
+
+      // Debug panel
+      updateDebug();
+    }
+
+    function onPassComplete() {
+      // Unlock rail ticks for jump navigation
+      document.querySelectorAll('.rail-tick').forEach((el, i) => {
+        el.classList.add('unlocked');
+      });
+    }
+
+    // ── Input handlers ─────────────────────────────────────────────────────
+
+    // Wheel — accumulate, threshold 90 px
+    window.addEventListener('wheel', (e) => {
+      if (!canStep()) return;
+      e.preventDefault();
+      let d = e.deltaY;
+      if (e.deltaMode === 1) d *= 16;
+      if (e.deltaMode === 2) d *= window.innerHeight;
+      wheelAccum += d;
+      if (Math.abs(wheelAccum) >= 90) step(Math.sign(wheelAccum));
+    }, { passive: false });
+
+    // Touch — threshold 48 px, rebase on each step
+    window.addEventListener('touchstart', (e) => {
+      touchRefY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!canStep() || touchRefY === null) return;
+      e.preventDefault();
+      const dy = touchRefY - e.touches[0].clientY;
+      if (Math.abs(dy) >= 48) {
+        step(Math.sign(dy));
+        touchRefY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => { touchRefY = null; });
+
+    // Click on stage → step(+1)
+    document.getElementById('stage').addEventListener('click', (e) => {
+      // Ignore if a child element has its own click (buttons etc.)
+      if (e.target !== e.currentTarget && e.target.closest('button,a,[data-clickable]')) return;
+      if (canStep()) step(1);
+    });
+
+    // Keys
+    window.addEventListener('keydown', (e) => {
+      if (menuIsOpen && e.key === 'Escape') { closeMenu(); return; }
+      if (!canStep()) return;
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); step(1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault(); step(-1);
+      }
+    });
+
+    // Rail tick clicks (only active after pass complete)
+    document.querySelectorAll('.rail-tick').forEach((el, i) => {
+      el.addEventListener('click', () => jumpTo(i));
+    });
+
+    // ── Menu ───────────────────────────────────────────────────────────────
+
+    const menuOverlay = document.getElementById('menu-overlay');
+    const menuBtn     = document.getElementById('menu-btn');
+
+    function openMenu() {
+      menuIsOpen = true;
+      menuOverlay.classList.add('open');
+      menuBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+      menuIsOpen = false;
+      menuOverlay.classList.remove('open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    menuBtn.addEventListener('click', () => {
+      if (menuIsOpen) {
+        // If opened by finis pass step, closing = step back to sp-c
+        if (passAct === 5 && passStep === 9) {
+          step(-1);
+        } else {
+          closeMenu();
+        }
+      } else {
+        openMenu();
+      }
+    });
+
+    menuOverlay.querySelectorAll('[data-view]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const view = el.dataset.view;
+        // NARRATIVE from finis = restart pass from Cover
+        if (view === 'narrative' && passAct === 5 && passStep === 9) {
+          closeMenu();
+          passAct = 0; passStep = 0; passComplete = false;
+          renderPass();
+        } else {
+          switchView(view);
+          closeMenu();
+        }
+      });
+    });
+
+    function switchView(view) {
+      activeView = view;
+
+      // Stage visible only for narrative
+      document.getElementById('stage').style.display =
+        view === 'narrative' ? '' : 'none';
+
+      // Plain sections
+      document.querySelectorAll('.plain-section').forEach(sec => {
+        sec.classList.toggle('active', sec.dataset.view === view);
+      });
+
+      updateDebug();
+    }
+
+    // ── Debug panel ────────────────────────────────────────────────────────
+
+    function updateDebug() {
+      const panel = document.getElementById('debug-panel');
+      if (!panel || panel.classList.contains('hidden')) return;
+      document.getElementById('dbg-act').textContent      = passAct;
+      document.getElementById('dbg-step').textContent     = passStep;
+      document.getElementById('dbg-view').textContent     = activeView;
+      document.getElementById('dbg-complete').textContent = passComplete ? 'yes' : 'no';
+    }
+
+    document.getElementById('dbg-prev').addEventListener('click', () => step(-1));
+    document.getElementById('dbg-next').addEventListener('click', () => step(1));
+
+    // ── ACT 2 · THE SYSTEM state machine ──────────────────────────────────
+    (function () {
+      const act = document.getElementById('act-the-system');
+      if (!act) return;
+
+      const STATES = [
+        { t: '',               d: 'The whole mountain — quiet and complete. One question, not yet opened.',
+          body: '' },
+        { t: 'DECISIONS',      d: 'The summit lifts. This is the stated question, surfaced first.',
+          body: 'A person comes with any life question — no forms, no preparation. The question they state is rarely the real one: the system reads what stands behind it before weighing any answer.' },
+        { t: 'GOALS',          d: 'Beneath it opens what the question is really about.',
+          body: 'Every decision moves a person toward their goals or away from them — each choice sets a vector. The system holds the person\'s goals and reads every question against them: which goal this decision serves, and whether that goal is truly the person\'s own.' },
+        { t: 'BASELINE',       d: 'The warm center: the state a person actually decides from.',
+          body: 'Significant decisions hold only when made from a stable center. A choice made off-balance serves the imbalance — and is repaid later. Before weighing a choice, the system reads the state it is being made from.' },
+        { t: 'INNER SYSTEMS',  d: 'Deeper still — six inner systems, opening toward their atoms.',
+          body: 'A person runs on many systems — six domains, each opening into smaller and smaller parts, all connected, each shaping the others. Their influence is real and mostly invisible from inside: physiology moves mood, mood moves judgment, judgment moves the choice. The system maps these parts and makes their influence visible.' },
+        { t: 'SUPPORT',        d: 'Bedrock. The full section settles and is read at once, as one architecture.',
+          body: 'Some questions require a professional. The system recognizes them, says so plainly, and connects the person to a verified specialist. The specialist\'s findings return to the person\'s map — the picture grows more complete with every hand that works on it.' },
+      ];
+
+      const G = 36;
+      function tY(s, k) {
+        return (s >= 1 && s <= 4) ? (s >= k ? -((s - k + 1) * G) : 0) : 0;
+      }
+
+      function renderTM(s) {
+        const T  = (px) => 'translateY(' + px + 'px)';
+        const z1 = tY(s,1), z2 = tY(s,2), z3 = tY(s,3), z4 = tY(s,4);
+        const bed = 0;
+
+        // Slab transforms
+        document.getElementById('tm-slab1').style.transform = T(z1);
+        document.getElementById('tm-slab2').style.transform = T(z2);
+        document.getElementById('tm-slab3').style.transform = T(z3);
+        document.getElementById('tm-slab4').style.transform = T(z4);
+        document.getElementById('tm-slab5').style.transform = T(bed);
+
+        // Label groups: same transform as stratum, plus opacity fade
+        function setL(id, tz, op) {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.style.transform = T(tz);
+          el.style.opacity   = op;
+        }
+        setL('tm-lbl-grp1', z1,  s >= 1 ? 1 : 0);
+        setL('tm-lbl-grp2', z2,  s >= 2 ? 1 : 0);
+        setL('tm-lbl-grp3', z3,  s >= 3 ? 1 : 0);
+        setL('tm-lbl-grp4', z4,  s >= 4 ? 1 : 0);
+        setL('tm-lbl-grp5', bed, s === 5 ? 1 : 0);
+
+        // Cells reveal at S4
+        document.getElementById('tm-cells').setAttribute('opacity', s >= 4 ? '0.9' : '0.25');
+
+        // S0 overlay (isolines + elevation rail + summit caret) — visible only at S0
+        const overlayEl = document.getElementById('tm-s0-overlay');
+        if (overlayEl) overlayEl.style.opacity = s === 0 ? '1' : '0';
+
+        // Right-panel text (cur must be declared before plate references it)
+        const cur = STATES[s];
+
+        // Status plate
+        const plateN = document.getElementById('tm-plate-n');
+        const plateT = document.getElementById('tm-plate-t');
+        if (plateN) plateN.textContent = 'S' + s;
+        if (plateT) plateT.textContent = cur.t || 'CLOSED';
+
+        // Right-panel text
+        const titleEl = document.getElementById('tm-cur-t');
+        titleEl.textContent   = cur.t;
+        titleEl.style.display = cur.t ? '' : 'none';
+        const descEl = document.getElementById('tm-cur-d');
+        descEl.textContent     = cur.d;
+        descEl.style.marginTop = cur.t ? '10px' : '14px';
+        const bodyEl = document.getElementById('tm-cur-body');
+        bodyEl.textContent    = cur.body;
+        bodyEl.style.display  = cur.body ? '' : 'none';
+
+        // Stepper: 5 rows (DECISIONS..SUPPORT), index 0..4 → state 1..5
+        for (let i = 0; i < 5; i++) {
+          const dot = document.getElementById('tm-step-dot-' + i);
+          const lbl = document.getElementById('tm-step-lbl-' + i);
+          if (dot) dot.style.background = (s === i + 1) ? '#7A1F2B' : '#CFC8BB';
+          if (lbl) {
+            lbl.style.color      = (s >= i + 1) ? '#141414' : '#A79F92';
+            lbl.style.fontWeight = (s === i + 1) ? '800' : '600';
+          }
+        }
+      }
+
+      // Fill contour paths from geo.js (synchronously loaded in <head>)
+      function initGeo() {
+        const geo = window.NAGARCOT_GEO;
+        if (!geo) return;
+        ['CB1','CB2','CB3','CB4'].forEach(function(k, i) {
+          const el = document.getElementById('tm-cb' + (i + 1));
+          if (el && geo[k]) el.setAttribute('d', geo[k]);
+        });
+      }
+
+      act.addEventListener('nagarcot-pass', function(e) {
+        renderTM(e.detail.step);
+      });
+
+      // geo.js is synchronous in <head>, NAGARCOT_GEO is ready now
+      initGeo();
+      renderTM(0);
+    })();
+
+    // Show debug panel only when ?debug param present (no persistence per spec)
+    if (new URLSearchParams(location.search).has('debug')) {
+      document.getElementById('debug-panel').classList.remove('hidden');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  ACT 3 · HOW IT WORKS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // ── Triangulation ─────────────────────────────────────────────────────────
+    const TRI_Q = 'Should I leave my job?';
+    const TRI_R = 'Leaving is measured by where to. What must be true in a year for the move to have been right?';
+    let triFrame = -1, triNChars = 0, triNReply = 0;
+    let triTypeT = null, triReplyT = null, triReplyD = null;
+
+    function triStopAll() {
+      clearInterval(triTypeT); clearInterval(triReplyT); clearTimeout(triReplyD);
+    }
+    function triStartTyping() {
+      triStopAll(); triNChars = 0;
+      document.getElementById('tri-typed').textContent = '';
+      triTypeT = setInterval(() => {
+        if (triNChars >= TRI_Q.length) { clearInterval(triTypeT); return; }
+        triNChars++;
+        document.getElementById('tri-typed').textContent = TRI_Q.slice(0, triNChars);
+      }, 45);
+    }
+    function triStartReply() {
+      clearInterval(triReplyT); clearTimeout(triReplyD);
+      triNReply = 0;
+      const el = document.getElementById('tri-reply');
+      if (el) el.textContent = '';
+      triReplyD = setTimeout(() => {
+        triReplyT = setInterval(() => {
+          if (triNReply >= TRI_R.length) { clearInterval(triReplyT); return; }
+          triNReply++;
+          const el2 = document.getElementById('tri-reply');
+          if (el2) el2.textContent = TRI_R.slice(0, triNReply);
+        }, 45);
+      }, 800);
+    }
+
+    function renderTri(f) {
+      const prev = triFrame; triFrame = f;
+
+      if (f === 0 && prev !== 0) { triStartTyping(); }
+      else if (f > 0) { triStopAll(); const td = document.getElementById('tri-typed'); if (td) td.textContent = TRI_Q; }
+
+      if (f === 3 && prev !== 3) { triStartReply(); }
+      else if (f !== 3) {
+        clearInterval(triReplyT); clearTimeout(triReplyD); triNReply = 0;
+        const rd = document.getElementById('tri-reply'); if (rd) { rd.textContent = ''; }
+      }
+
+      // Thread draw
+      const DRAWN = 'transition:stroke-dashoffset 500ms ease-out;stroke-dashoffset:0';
+      const UNDRAWN = 'transition:stroke-dashoffset 300ms ease-out;stroke-dashoffset:297';
+      const tG = document.getElementById('tri-tG'); if (tG) tG.style.cssText = f >= 1 ? DRAWN : UNDRAWN;
+      const tB = document.getElementById('tri-tB'); if (tB) tB.style.cssText = f >= 2 ? DRAWN : UNDRAWN;
+      const tC = document.getElementById('tri-tC');
+      if (tC) tC.style.cssText = f >= 3 ? 'transition:stroke-dashoffset 400ms ease-out 200ms;stroke-dashoffset:0' : 'stroke-dashoffset:92';
+      const tCa = document.getElementById('tri-tCa');
+      if (tCa) { tCa.style.opacity = f >= 3 ? 1 : 0; tCa.style.transition = f >= 3 ? 'opacity 400ms ease 550ms' : 'none'; }
+
+      // Reply opacity
+      const rEl = document.getElementById('tri-reply'); if (rEl) rEl.style.opacity = f >= 3 ? 1 : 0;
+
+      // Highlights & tempo
+      ['tri-hl1','tri-hl2'].forEach(id => { const e = document.getElementById(id); if (e) e.style.opacity = f >= 1 ? 1 : 0; });
+      const tm = document.getElementById('tri-tempo'); if (tm) tm.style.opacity = f >= 2 ? 1 : 0;
+
+      // Nodes
+      const nG = document.getElementById('tri-nG'); if (nG) nG.style.opacity = f >= 1 ? 1 : 0.35;
+      const nGd = document.getElementById('tri-nGdot'); if (nGd) nGd.style.opacity = f >= 1 ? 1 : 0;
+      const nB = document.getElementById('tri-nB'); if (nB) nB.style.opacity = f >= 2 ? 1 : 0.35;
+      const nBd = document.getElementById('tri-nBdot'); if (nBd) nBd.style.opacity = f >= 2 ? 1 : 0;
+      const aG = document.getElementById('tri-annG'); if (aG) aG.style.opacity = f >= 1 ? 1 : 0;
+      const aB = document.getElementById('tri-annB'); if (aB) aB.style.opacity = f >= 2 ? 1 : 0;
+
+      // Status
+      const statuses = [
+        'A question arrives as stated. Nothing is answered yet.',
+        'Behind the words, a vector: what the question is actually about.',
+        'And the state it is asked from — that state shapes the answer.',
+        'One question, read in three layers at once. The answer is weighed only after all three.',
+      ];
+      const sEl = document.getElementById('tri-status');
+      if (sEl) {
+        sEl.textContent = statuses[f];
+        sEl.style.animation = 'none';
+        requestAnimationFrame(() => { sEl.style.animation = (f%2===0?'statusInA':'statusInB') + ' 400ms cubic-bezier(.22,1,.36,1) both'; });
+      }
+      const sec = document.getElementById('tri-secondary'); if (sec) sec.style.opacity = f === 3 ? 1 : 0;
+
+      // Stepper
+      for (let i = 0; i < 4; i++) {
+        const d = document.getElementById('tri-dot-'+i), l = document.getElementById('tri-lbl-'+i);
+        if (d) d.style.background = (f===i) ? '#7A1F2B' : '#CFC8BB';
+        if (l) { l.style.color=(f>=i)?'#141414':'#A79F92'; l.style.fontWeight=(f===i)?'800':'600'; }
+      }
+    }
+
+    function triJump(f) { passAct=3; passStep=f; renderPass(); }
+
+    // ── Inner Systems ─────────────────────────────────────────────────────────
+    let isModel = null, isFrame = -1, isActiveLife = 0, isLifeTimer = null;
+
+    function buildISModel() {
+      const geo = window.NAGARCOT_GEO;
+      if (!geo) return null;
+      let seed = 7;
+      const rnd = () => { seed = (seed*1664525+1013904223)>>>0; return seed/4294967296; };
+      const D = [
+        { name:'HEALTH',      f1:[140,490,200,125], f3:[60,460,225,175],
+          labels:['Cardiovascular','Metabolism','Musculoskeletal','Immune','Endocrine','Digestion'] },
+        { name:'ENERGY',      f1:[460,520,170,105], f3:[330,480,205,155],
+          labels:['Sleep','Nutrition','Recovery','Load','Vitality'] },
+        { name:'PSYCHE',      f1:[620,300,180,135], f3:[560,260,240,200], f2:[540,240,320,280],
+          labels:['Emotions','Stress','Resilience','Patterns','Relationships'] },
+        { name:'COGNITION',   f1:[195,285,170,115], f3:[80,250,205,165],
+          labels:['Attention','Processing speed','Judgment','Creativity','Mental clarity'] },
+        { name:'PERFORMANCE', f1:[380,120,210,125], f3:[330,75,235,185],
+          labels:['Execution','Productivity','Mastery','Resources','Direction'] },
+        { name:'MEANING',     f1:[665,85,155,105],  f3:[605,55,195,155],
+          labels:['Values','Purpose','Identity','Worldview','Satisfaction'] },
+      ];
+      const layout = (rect, n) => {
+        const [X,Y,W,H]=rect, pad=14, top=32, cols=2, rows=Math.ceil(n/cols);
+        const cw=(W-pad*2)/cols, ch=(H-top-pad)/rows, out=[];
+        for (let i=0;i<n;i++) {
+          const c=i%cols, r=Math.floor(i/cols);
+          const w=Math.max(34,cw-10-rnd()*14), h=Math.max(22,ch-8-rnd()*10);
+          out.push([X+pad+c*cw+rnd()*6, Y+top+r*ch+rnd()*5, w, h]);
+        }
+        return out;
+      };
+      const atomsInSub = (s,n) => {
+        const size=9,gap=4;
+        const cols=Math.max(1,Math.floor((s[2]-8+gap)/(size+gap)));
+        const rows=Math.max(1,Math.floor((s[3]-8+gap)/(size+gap)));
+        const max=cols*rows;
+        const out=[];
+        for (let i=0;i<Math.min(n,max);i++) { const c=i%cols,r=Math.floor(i/cols); out.push([s[0]+5+c*(size+gap),s[1]+5+r*(size+gap)]); }
+        return out;
+      };
+      const doms=[],subs=[],atoms=[];
+      D.forEach((d,di) => {
+        const nSub=d.labels.length, sub3=layout(d.f3,nSub), sub2=d.f2?layout(d.f2,nSub):null;
+        const c1=[d.f1[0]+d.f1[2]/2, d.f1[1]+d.f1[3]/2];
+        sub3.forEach((s,si) => {
+          subs.push({di,si,label:d.labels[si],r3:s,r2:sub2?sub2[si]:s});
+          const nA=3+Math.floor(rnd()*6), domRoll=rnd();
+          const domIdx=domRoll<0.28?0:domRoll<0.55?1:domRoll<0.82?2:3;
+          atomsInSub(s,nA).forEach(p => {
+            const st=rnd()<0.72?domIdx:Math.floor(rnd()*4);
+            atoms.push({di,si,lx:p[0],ly:p[1],hx:c1[0]+rnd()*40-20,hy:c1[1]+rnd()*24-12,st});
+          });
+        });
+        doms.push({name:d.name,f1:d.f1,f2:d.f2||null,f3:d.f3,di});
+      });
+      const silPts=[...geo.SIL.matchAll(/([\d.]+),([\d.]+)/g)].map(m=>[+m[1],+m[2]]);
+      const inside=(x,y)=>{
+        let c=false;
+        for (let i=0,j=silPts.length-1;i<silPts.length;j=i++) {
+          const[xi,yi]=silPts[i],[xj,yj]=silPts[j];
+          if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c;
+        }
+        return c;
+      };
+      const pts=[];
+      for (let y=672;y>=88;y-=13) for (let x=150;x<=740;x+=13)
+        if(inside(x,y)&&inside(x-5,y)&&inside(x+5,y)) pts.push([x,y]);
+      const N=atoms.length,P=pts.length;
+      const used=new Set();
+      atoms.forEach((a,i)=>{ const idx=Math.min(P-1,Math.floor(i*P/N)); used.add(idx); const p=pts[idx]; a.mx=p[0]-4.5; a.my=p[1]-4.5; });
+      const mass=[];
+      pts.forEach((p,i)=>{ if(used.has(i))return; const roll=rnd(); const fill=roll<0.3?'#A85C4B':roll<0.65?'#B48A45':'#566B4D'; mass.push({x:p[0]-4.5,y:p[1]-4.5,fill}); });
+      const bandLines=[300,480].map(y=>{ let x1=null,x2=null; for(let x=60;x<=850;x+=2){if(inside(x,y)){if(x1===null)x1=x;x2=x;}} return{y,x1:x1+6,x2:x2-6}; });
+      return {doms,subs,atoms,mass,bandLines,silD:geo.SIL};
+    }
+
+    function renderIS(f) {
+      isFrame = f;
+      if (!isModel) isModel = buildISModel();
+      if (!isModel) return;
+      const m = isModel;
+      const EASE = 'cubic-bezier(.22,1,.36,1)';
+      const STATES = [['none','#CFC8BB'],['#A85C4B','#A85C4B'],['#B48A45','#B48A45'],['#566B4D','#566B4D']];
+
+      const psyC=[700,380];
+      const dispf=(d)=>{ if(f!==1||d.di===2)return[0,0]; const r=d.f1,cx=r[0]+r[2]/2,cy=r[1]+r[3]/2,dx=cx-psyC[0],dy=cy-psyC[1],L=Math.hypot(dx,dy)||1; return[dx/L*60,dy/L*60]; };
+      const domRect=(d)=>{ const r=(f>=2?d.f3:(f===1&&d.name==='PSYCHE'&&d.f2?d.f2:d.f1)); const[dx,dy]=dispf(d); return[r[0]+dx,r[1]+dy,r[2],r[3]]; };
+      const gT=`transition:x .5s ${EASE},y .5s ${EASE},width .5s ${EASE},height .5s ${EASE},opacity .4s ease`;
+
+      let dH=''; m.doms.forEach(d=>{ const r=domRect(d),op=f===3?0:(f===1&&d.di!==2?0.4:1); dH+=`<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" rx="2" fill="none" stroke="#8F8676" stroke-width="1.6" style="${gT};opacity:${op}"></rect>`; });
+      document.getElementById('is-domains').innerHTML = dH;
+
+      let dlH=''; m.doms.forEach((d,i)=>{ const r=domRect(d),op=f===3?0:(f===1&&i!==2?0.4:1); dlH+=`<text x="${r[0]+14}" y="${r[1]+23}" font-family="Archivo,sans-serif" font-weight="700" font-size="17" letter-spacing="0.04em" fill="#141414" style="transition:opacity .4s ease,x .5s ${EASE},y .5s ${EASE};opacity:${op}">${d.name}</text>`; });
+      document.getElementById('is-domain-labels').innerHTML = dlH;
+
+      let sbH=''; m.subs.forEach(s=>{ const vis=f===1?s.di===2:f===2; const r=f===1?s.r2:s.r3; const dly=s.si*10; sbH+=`<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" rx="1.5" fill="none" stroke="#C4BCAD" stroke-width="1" style="${gT};transition-delay:${dly}ms;opacity:${vis?0.9:0}"></rect>`; });
+      document.getElementById('is-subs').innerHTML = sbH;
+
+      let slH=''; m.subs.filter(s=>s.di===2).forEach((s,i)=>{ slH+=`<text x="${s.r2[0]+7}" y="${s.r2[1]+16}" font-family="'IBM Plex Mono',monospace" font-size="11.5" letter-spacing="0.03em" fill="#6E675C" style="transition:opacity .3s ease;opacity:${f===1?1:0}">${s.label}</text>`; });
+      document.getElementById('is-sub-labels').innerHTML = slH;
+
+      const pairs=[[0,1],[0,3],[1,2],[3,2],[2,5],[4,5],[3,4]];
+      const edgePt=(cx,cy,tx,ty,w,h)=>{ const dx=tx-cx,dy=ty-cy,s=Math.max(Math.abs(dx)/(w/2),Math.abs(dy)/(h/2))||1; return[cx+dx/s,cy+dy/s]; };
+      let lnH=''; pairs.forEach(([i,j])=>{ const a=domRect(m.doms[i]),b=domRect(m.doms[j]); const ca=[a[0]+a[2]/2,a[1]+a[3]/2],cb=[b[0]+b[2]/2,b[1]+b[3]/2]; const p1=edgePt(ca[0],ca[1],cb[0],cb[1],a[2],a[3]),p2=edgePt(cb[0],cb[1],ca[0],ca[1],b[2],b[3]); const op=f===3?0:(f===1?0.3:0.85); lnH+=`<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="#C9C2B4" stroke-width="1" style="transition:opacity .4s ease;opacity:${op}"></line>`; });
+      document.getElementById('is-links').innerHTML = lnH;
+
+      let atH=''; m.atoms.forEach(a=>{ let x,y,op; if(f<=1){x=a.hx;y=a.hy;op=0;}else if(f===2){x=a.lx;y=a.ly;op=1;}else{x=a.mx;y=a.my;op=1;} const dly=f===3?a.di*140+a.si*15:a.di*40+a.si*10; const[fill,stroke]=STATES[a.st]; atH+=`<rect width="9" height="9" rx="1.5" fill="${fill}" fill-opacity="0.92" stroke="${stroke}" stroke-width="1" style="transition:transform .9s ${EASE} ${dly}ms,opacity .4s ease ${dly}ms;transform:translate(${x}px,${y}px);opacity:${op}"></rect>`; });
+      const atG=document.getElementById('is-atoms'); atG.innerHTML=atH; atG.style.animation=f===3?'breath 7s ease-in-out infinite':'';
+
+      let msH=''; m.mass.forEach((c,i)=>{ const dly=f===3?700+Math.round((672-c.y)*1.1):0; msH+=`<rect x="${c.x}" y="${c.y}" width="9" height="9" rx="1.5" fill="${c.fill}" fill-opacity="0.92" data-mass-i="${i}" style="transition:opacity .4s ease ${dly}ms,fill 1400ms linear;opacity:${f===3?1:0}"></rect>`; });
+      const msG=document.getElementById('is-mass'); msG.innerHTML=msH; msG.style.animation=f===3?'breath 7s ease-in-out infinite':'';
+
+      let bnH=''; m.bandLines.forEach(b=>{ const dly=f===3?1600:0; bnH+=`<line x1="${b.x1}" y1="${b.y}" x2="${b.x2}" y2="${b.y}" stroke="#F2EFE9" stroke-width="2" style="transition:opacity .4s ease ${dly}ms;opacity:${f===3?0.85:0}"></line>`; });
+      document.getElementById('is-band-lines').innerHTML = bnH;
+
+      const silEl=document.getElementById('is-sil'); if(silEl){silEl.setAttribute('d',m.silD);silEl.style.transition=`opacity .5s ease ${f===3?600:0}ms`;silEl.style.opacity=f===3?1:0;}
+
+      // Status
+      const sts=['Six domains of the inner map. Every cell is empty — outline only.','A tapped domain opens into its sub-blocks. Counts differ by domain.','The deep lattice, mid-fill — warm red, amber, first patches of green.','The sum of the atoms is the person — visible to themselves for the first time.'];
+      const stEl=document.getElementById('is-status'); if(stEl){stEl.textContent=sts[f];stEl.style.animation='none';requestAnimationFrame(()=>{stEl.style.animation=(f%2===0?'statusInA':'statusInB')+' 400ms cubic-bezier(.22,1,.36,1) both';});}
+
+      // Status plate
+      const frs=[{n:'F1',t:'SIX DOMAINS',d:'Six domains of the inner map. Every cell empty — outline only.'},{n:'F2',t:'EXPANSION',d:'A tapped domain opens into its sub-blocks. Counts differ by domain.'},{n:'F3',t:'LIVING MAP',d:'The deep lattice, mid-fill. Warm red, amber, first patches of green.'},{n:'F4',t:'CONDENSATION',d:'Every atom draws together into the mountain. The sum is the person.'}];
+      const ipN=document.getElementById('is-plate-n'),ipT=document.getElementById('is-plate-t');
+      if(ipN)ipN.textContent=frs[f].n; if(ipT)ipT.textContent=frs[f].t;
+      // Right panel
+      const fn=document.getElementById('is-frame-n'),ft=document.getElementById('is-frame-t'),fd=document.getElementById('is-frame-d');
+      if(fn)fn.textContent=frs[f].n; if(ft)ft.textContent=frs[f].t; if(fd)fd.textContent=frs[f].d;
+      for(let i=0;i<4;i++){const d=document.getElementById('is-dot-'+i),l=document.getElementById('is-lbl-'+i);if(d)d.style.background=(f===i)?'#7A1F2B':'#CFC8BB';if(l){l.style.color=(f>=i)?'#141414':'#A79F92';l.style.fontWeight=(f===i)?'800':'600';}}
+    }
+
+    function startISLife() {
+      clearTimeout(isLifeTimer);
+      const tick = () => {
+        if (isFrame===3 && isActiveLife<2 && isModel) {
+          const pool=isModel.mass, i=Math.floor(Math.random()*pool.length), c=pool[i];
+          const next=c.fill==='#A85C4B'?'#B48A45':c.fill==='#B48A45'?'#566B4D':(Math.random()<0.3?'#B48A45':null);
+          if(next){ c.fill=next; isActiveLife++; const g=document.getElementById('is-mass'); if(g&&g.children[i])g.children[i].setAttribute('fill',next); setTimeout(()=>{isActiveLife=Math.max(0,isActiveLife-1);},1400); }
+        }
+        isLifeTimer=setTimeout(tick,3000+Math.random()*2000);
+      };
+      isLifeTimer=setTimeout(tick,3000+Math.random()*2000);
+    }
+
+    function isJump(f) { passAct=3; passStep=4+f; renderPass(); }
+
+    // ── SPR Demo ──────────────────────────────────────────────────────────────
+    let sprOpen = -1;
+    const SPR_BGS = ['#DDD6C8','#D3CBBB','#C9C0AF','#BFB5A2','#B5AB97'];
+    const SPR_STRATA = [
+      {name:'negotiation & investigative interviewing',tail:'how the real question surfaces without pressure',body:"A direct question about the real issue hits a defense wall — even alone with a machine. Calibrated open questions and labeling (the toolkit of hostage negotiation and cognitive interviewing) let the person arrive at what they haven't said, instead of being pushed toward it. The real question surfaces as their own finding."},
+      {name:'motivational interviewing',tail:'how truth lands without triggering defense',body:"People act on truths they say themselves and resist the same truths when told. The system reflects the person's own words back before it challenges anything — so the hard part arrives already half-accepted. Confrontation wakes defense; reflection opens the door it guards."},
+      {name:'behavioral economics',tail:'how choices distort predictably',body:"Decisions distort systematically and predictably: people build the whole picture from what's in front of them and treat it as complete (Kahneman's WYSIATI), overweigh losses, decide differently hot than cold. Predictable distortions can be checked deliberately — the system returns what the picture is missing before the choice is made."},
+      {name:'decision taxonomies',tail:'58 types of major life decisions and their known failure points',body:'Big life decisions are mapped territory: an empirical taxonomy of 58 types across 9 categories (Camilleri, 2023), each with known failure points. The system recognizes which pattern it is looking at and what typically breaks there — it starts from the map, never from zero.'},
+      {name:'state science',tail:'how sleep, hormones and depletion shift judgment',body:"Sleep debt, hormonal shifts and depletion measurably degrade judgment — and register from inside as mood or character, so the person doesn't correct for them. The system reads the state a question is asked from, and holds the deep work for when the person can hold it."},
+    ];
+
+    function renderSPR(open) {
+      if (open !== undefined) sprOpen = open;
+      const o = sprOpen;
+      const sc = document.getElementById('spr-strata');
+      if (!sc) return;
+      let sH='';
+      SPR_STRATA.forEach((s,i)=>{
+        const chev=o===i?'rotate(180deg)':'rotate(0deg)', mh=o===i?'240px':'0px', op=o===i?1:0;
+        sH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;background:${SPR_BGS[i]};border-bottom:1px solid #8F8676"><div style="display:flex;align-items:baseline;gap:14px;padding:13px 22px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E675C;flex-shrink:0">0${i+1}</span><span style="font-size:14px;line-height:1.45;color:#141414"><strong style="font-weight:500;font-family:'Archivo',sans-serif;letter-spacing:0.02em">${s.name}</strong> — ${s.tail}</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#6E675C;transition:transform 350ms ease;transform:${chev}">▾</span></div><div style="overflow:hidden;transition:max-height 350ms cubic-bezier(.22,1,.36,1),opacity 300ms ease;max-height:${mh};opacity:${op}"><p style="margin:0;padding:2px 22px 14px 47px;font-size:14px;line-height:1.6;color:#4A453D;max-width:86%;text-wrap:pretty">${s.body}</p></div></div>`;
+      });
+      sc.innerHTML = sH;
+
+      const statusLine=o===-1?'The working engine — and the five methodological strata it stands on.':SPR_STRATA[o].name.charAt(0).toUpperCase()+SPR_STRATA[o].name.slice(1)+' — '+SPR_STRATA[o].tail+'.';
+      const stEl=document.getElementById('spr-status');
+      if(stEl){stEl.textContent=statusLine;stEl.style.animation='none';requestAnimationFrame(()=>{stEl.style.animation=((o+1)%2===0?'statusInA':'statusInB')+' 400ms cubic-bezier(.22,1,.36,1) both';});}
+
+      const spEl=document.getElementById('spr-stepper');
+      if(spEl){let stH='';SPR_STRATA.forEach((s,i)=>{const dot=o===i?'#7A1F2B':'#CFC8BB',txt=o===i?'#141414':'#A79F92',fw=o===i?'800':'600',nm=s.name.toUpperCase().slice(0,28)+(s.name.length>28?'…':'');stH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92;width:26px">0${i+1}</span><span style="font-family:'Archivo',sans-serif;font-weight:${fw};font-size:13px;letter-spacing:0.04em;color:${txt}">${nm}</span></div>`;});spEl.innerHTML=stH;}
+    }
+
+    function sprToggle(i) { renderSPR(sprOpen===i?-1:i); }
+
+    // ── Main ACT 3 dispatcher ─────────────────────────────────────────────────
+    let hwActiveScene = -1;
+
+    function renderHW(step) {
+      const scene = step<=3?0:step<=7?1:2;
+      const f     = step<=3?step:step<=7?(step-4):0;
+
+      if (scene !== hwActiveScene) {
+        ['hw-tri','hw-is','hw-spr'].forEach((id,i)=>{
+          const el=document.getElementById(id); if(!el)return;
+          el.classList.toggle('hw-active',i===scene);
+        });
+        hwActiveScene = scene;
+        if (scene===1) startISLife();
+        if (scene===2) { sprOpen=-1; renderSPR(); }
+        if (scene===0 && f===0) triStartTyping();
+      }
+
+      if (scene===0) renderTri(f);
+      else if (scene===1) {
+        if (!isModel) isModel = buildISModel();
+        if (isModel) renderIS(f);
+      }
+    }
+
+    document.getElementById('act-how-it-works').addEventListener('nagarcot-pass', (e) => {
+      renderHW(e.detail.step);
+    });
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  ACT 4 · THE MAP
+    // ══════════════════════════════════════════════════════════════════════════
+    const PM_R = [[265,598],[330,538],[350,470]];
+    const PM_FRAMES = [
+      { n:'S1', t:'ON THE MAP',   line:'The person stands on their own map. The trail ahead is drawn, not walked.' },
+      { n:'S2', t:'THE FORK',     line:"A fork: today's choice, placed on the trail." },
+      { n:'S3', t:'THE VECTOR',   line:'The step is taken — and recorded against the vector to the far summit.' },
+    ];
+    let pmGeoReady = false;
+
+    function ensurePMGeo() {
+      if (pmGeoReady) return;
+      const geo = window.NAGARCOT_GEO;
+      if (!geo) return;
+      const silEl  = document.getElementById('pm-sil');
+      const clipEl = document.getElementById('pm-sil-clip');
+      const ctrEl  = document.getElementById('pm-contours');
+      if (silEl)  silEl.setAttribute('d', geo.SIL||'');
+      if (clipEl) clipEl.setAttribute('d', geo.SIL||'');
+      if (ctrEl)  ctrEl.setAttribute('d', (geo.CB1||'')+(geo.CB2||'')+(geo.CB3||'')+(geo.CB4||''));
+      pmGeoReady = true;
+    }
+
+    function renderMap(step) {
+      ensurePMGeo();
+      const s = Math.max(0, Math.min(2, step));
+      const pos = PM_R[s];
+
+      // Traveled path
+      const tPts = [[205,655], ...PM_R.slice(0, s+1)];
+      const tEl = document.getElementById('pm-traveled');
+      if (tEl) tEl.setAttribute('d', 'M'+tPts.map(p=>p[0]+','+p[1]).join(' L'));
+
+      // Ahead path to Summit A
+      const aPts = [...PM_R.slice(s), [368,420],[395,330],[388,210],[380,116]];
+      const aEl = document.getElementById('pm-ahead-a');
+      if (aEl) aEl.setAttribute('d', 'M'+aPts.map(p=>p[0]+','+p[1]).join(' L'));
+
+      // Forks
+      const f1=document.getElementById('pm-fork1'); if(f1) f1.style.opacity=s>=1?'1':'0';
+      const f2=document.getElementById('pm-fork2'); if(f2) f2.style.opacity=s>=2?'1':'0';
+
+      // Vector
+      const target=s<2?[466,398]:[380,116];
+      const dx=target[0]-pos[0], dy=target[1]-pos[1], vL=Math.hypot(dx,dy)||1, vlen=74;
+      const vEl=document.getElementById('pm-vector');
+      if(vEl){
+        vEl.setAttribute('x1',(pos[0]+dx/vL*16).toFixed(1));
+        vEl.setAttribute('y1',(pos[1]+dy/vL*16).toFixed(1));
+        vEl.setAttribute('x2',(pos[0]+dx/vL*vlen).toFixed(1));
+        vEl.setAttribute('y2',(pos[1]+dy/vL*vlen).toFixed(1));
+      }
+
+      // Person
+      const pEl=document.getElementById('pm-person');
+      if(pEl) pEl.style.transform=`translate(${pos[0]}px,${pos[1]}px)`;
+
+      // Status plate
+      const ppN=document.getElementById('pm-plate-n'),ppT=document.getElementById('pm-plate-t');
+      if(ppN)ppN.textContent=PM_FRAMES[s].n; if(ppT)ppT.textContent=PM_FRAMES[s].t;
+
+      // Status
+      const fr=PM_FRAMES[s];
+      const stEl=document.getElementById('pm-status');
+      if(stEl){ const anim=s%2===0?'statusInA':'statusInB'; stEl.style.animation='none'; requestAnimationFrame(()=>{ stEl.textContent=fr.line; stEl.style.animation=`${anim} 400ms cubic-bezier(.22,1,.36,1) both`; }); }
+
+      // Stepper
+      const spEl=document.getElementById('pm-stepper');
+      if(spEl) spEl.innerHTML=PM_FRAMES.map((f,i)=>`<div onclick="pmJump(${i})" data-clickable style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6"><span style="width:7px;height:7px;border-radius:50%;background:${i===s?'#7A1F2B':'#CFC8BB'};flex-shrink:0"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92;width:26px">${f.n}</span><span style="font-family:'Archivo',sans-serif;font-weight:${i===s?'800':'600'};font-size:13px;letter-spacing:0.04em;color:${i<=s?'#141414':'#A79F92'}">${f.t}</span></div>`).join('');
+    }
+
+    function pmJump(i) { passAct=4; passStep=i; renderPass(); }
+
+    document.getElementById('act-the-map').addEventListener('nagarcot-pass', (e)=>{ renderMap(e.detail.step); });
+    renderMap(0);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  ACT 5 · SUPPORT — three scenes: The Reach (A1), The Rows (A2), Specialist Loop (A3)
+    // ══════════════════════════════════════════════════════════════════════════
+    function renderSupport(s) {
+      const isFinis = s === 9;
+      const scene = s <= 1 ? 'a' : s <= 7 ? 'b' : 'c';
+
+      // Scene visibility (a/b/c only — no separate finis element)
+      ['a','b','c'].forEach(id => {
+        const el = document.getElementById('sp-' + id);
+        if (!el) return;
+        const on = id === scene;
+        el.style.opacity = on ? '1' : '0';
+        el.style.pointerEvents = on ? '' : 'none';
+      });
+
+      // Plate: hide on finis
+      const plate = document.getElementById('sp-plate');
+      if (plate) plate.style.opacity = isFinis ? '0' : '1';
+
+      // Plate state number
+      const pN = document.getElementById('sp-plate-n');
+      if (pN) pN.textContent = s <= 1 ? 'A1' : s <= 7 ? 'A2' : 'A3';
+
+      // Finis = menu overlay; any other step = close if open from finis
+      if (isFinis) {
+        openMenu();
+      } else {
+        if (menuIsOpen) closeMenu();
+      }
+
+      if (scene === 'a') {
+        renderSupportA(s);
+      } else if (scene === 'b') {
+        renderSupportB(s - 2);  // row index 0–5
+      } else {
+        // Scene C: fill SIL path in flow diagram
+        const geo = window.NAGARCOT_GEO;
+        if (geo) { const el = document.getElementById('sl-sil'); if (el && geo.SIL) el.setAttribute('d', geo.SIL); }
+      }
+    }
+
+    function renderSupportA(s) {
+      const ids = ['sp-zone-outer','sp-zone-r1','sp-zone-r2','sp-zone-dot','sp-zone-label'];
+      const outerEl  = document.getElementById('sp-zone-outer');
+      const threadEl = document.getElementById('sp-thread');
+
+      // Zone: fade in only if not yet visible (first show when act is active)
+      if (passAct === 5 && outerEl && outerEl.style.opacity !== '1') {
+        ids.forEach(id => {
+          const el = document.getElementById(id); if (!el) return;
+          el.style.transition = 'opacity 700ms ease-out';
+          el.style.opacity = '1';
+        });
+        setTimeout(() => {
+          if (outerEl) outerEl.style.animation = 'glowPulse 5s ease-in-out infinite';
+        }, 720);
+      }
+
+      // Thread: draw on s>=1, un-draw on s<1
+      if (threadEl) {
+        if (s >= 1) {
+          threadEl.style.transition = 'stroke-dashoffset 900ms ease-in-out';
+          threadEl.style.strokeDashoffset = '0';
+        } else {
+          threadEl.style.transition = 'stroke-dashoffset 600ms ease-in';
+          threadEl.style.strokeDashoffset = '400';
+        }
+      }
+    }
+
+    function renderSupportB(rowIdx) {
+      // rowIdx 0–5: show rows 0..rowIdx, hide the rest
+      for (let i = 0; i <= 5; i++) {
+        const rowEl = document.getElementById('sp-row-' + i);
+        if (!rowEl) continue;
+        const show = i <= rowIdx;
+        if (show) {
+          rowEl.style.transition = 'opacity 500ms ease-out,transform 500ms ease-out';
+          rowEl.style.opacity = '1';
+          rowEl.style.transform = 'none';
+          rowEl.querySelectorAll('.sp-chip').forEach((c, ci) => {
+            c.style.transition = 'opacity 500ms ease-out ' + (ci * 60) + 'ms';
+            c.style.opacity = '1';
+          });
+        } else {
+          rowEl.style.transition = 'none';
+          rowEl.style.opacity = '0';
+          rowEl.style.transform = 'translateY(8px)';
+          rowEl.querySelectorAll('.sp-chip').forEach(c => {
+            c.style.transition = 'none'; c.style.opacity = '0';
+          });
+        }
+      }
+      const footer = document.getElementById('sp-rows-footer');
+      if (footer) {
+        if (rowIdx >= 5) {
+          footer.style.transition = 'opacity 500ms ease-out,transform 500ms ease-out';
+          footer.style.opacity = '1'; footer.style.transform = 'none';
+        } else {
+          footer.style.transition = 'none';
+          footer.style.opacity = '0'; footer.style.transform = 'translateY(8px)';
+        }
+      }
+    }
+
+    document.getElementById('act-support').addEventListener('nagarcot-pass', (e) => { renderSupport(e.detail.step); });
+    renderSupport(0);
+
+    // ── ACT 2 internal row-click jump ─────────────────────────────────────
+    function tmJump(i) {
+      if (passAct !== 2) return;
+      passStep = i;
+      renderPass();
+    }
+
+    // ── ACT 1 · NAGARKOT state machine ────────────────────────────────────
+    // step 0 = State A (pre-dawn), step ≥ 1 = State B (sunrise cross-fade)
+    (function () {
+      const act = document.getElementById('act-nagarkot');
+      let stateB = false;
+
+      function setStateB(b) {
+        if (b === stateB) return;
+        stateB = b;
+
+        const photo2 = document.getElementById('nk-photo2');
+        const p1     = document.getElementById('nk-p1');
+        const p2     = document.getElementById('nk-p2');
+        const hint   = document.getElementById('nk-hint');
+        const kicker = document.getElementById('nk-kicker');
+
+        if (b) {
+          photo2.style.transition = 'opacity 1400ms ease-in-out';
+          photo2.style.opacity    = '1';
+          p1.style.transition     = 'opacity 500ms ease-in-out';
+          p1.style.opacity        = '0';
+          p2.style.transition     = 'opacity 600ms ease-in-out 400ms';
+          p2.style.opacity        = '1';
+          hint.style.transition   = 'opacity 500ms ease';
+          hint.style.opacity      = '0';
+          kicker.style.transition = 'color 1400ms ease-in-out,text-shadow 1400ms ease-in-out';
+          kicker.style.color      = '#4A453D';
+          kicker.style.textShadow = 'none';
+        } else {
+          photo2.style.transition = 'opacity 1200ms ease-in-out';
+          photo2.style.opacity    = '0';
+          p1.style.transition     = 'opacity 400ms ease-in-out';
+          p1.style.opacity        = '1';
+          p2.style.transition     = 'opacity 300ms ease-in-out';
+          p2.style.opacity        = '0';
+          hint.style.opacity      = '1';
+          kicker.style.color      = '#CFC8BB';
+          kicker.style.textShadow = '0 1px 12px rgba(0,0,0,0.5)';
+        }
+      }
+
+      act.addEventListener('nagarcot-pass', (e) => {
+        setStateB(e.detail.step >= 1);
+      });
+    })();
+  </script>
+</body>
+</html>

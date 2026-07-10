@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAGARCOT</title>
+<style>
+:root{
+  --bg:#F8F6F2;
+  --accent:#4B0F1A;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  height:100%;
+  background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif;
+}
+main{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px;
+}
+.block{
+  text-align:center;
+}
+.logo{
+  width:min(720px,80vw);
+  height:auto;
+  display:block;
+  margin:0 auto;
+}
+.line{
+  width:56px;
+  height:2px;
+  background:var(--accent);
+  opacity:.55;
+  margin:28px auto;
+}
+.text{
+  color:var(--accent);
+  text-transform:uppercase;
+  letter-spacing:.22em;
+  font-size:18px;
+  font-weight:500;
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="block">
+    <img class="logo" src="logo.png" alt="NAGARCOT">
+    <div class="line"></div>
+    <div class="text">Preparing for Launch</div>
+  </div>
+</main>
+</body>
+</html>

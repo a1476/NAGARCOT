@@ -1,0 +1,15 @@
+[build]
+  publish = "."
+
+# Serve /prelaunch without trailing slash
+[[redirects]]
+  from = "/prelaunch"
+  to   = "/prelaunch/"
+  status = 301
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
