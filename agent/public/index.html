@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAGARCOT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header: field indicator tabs (indicators, not buttons) -->
+    <header id="header">
+      <div class="field-tabs">
+        <div class="tab active" data-field="вопросы" id="tab-вопросы">
+          <span class="tab-dot"></span>
+          Decisions
+        </div>
+        <div class="tab" data-field="цели" id="tab-цели">
+          <span class="tab-dot"></span>
+          Goals
+        </div>
+        <div class="tab" data-field="база" id="tab-база">
+          <span class="tab-dot"></span>
+          Base
+        </div>
+      </div>
+      <a id="return-link" href="https://nagarcot.com/prelaunch/#spr-demo">← NAGARCOT</a>
+      <button id="settings-btn" title="Settings">⚙</button>
+    </header>
+
+    <!-- Field description -->
+    <div id="field-description" class="field-description">
+      <p id="field-desc-text"></p>
+    </div>
+
+    <!-- Main dialog area -->
+    <main id="dialog-area">
+      <div id="messages"></div>
+
+      <!-- Bifurcation card (развилка) — hidden by default -->
+      <div id="bifurcation" class="bifurcation hidden">
+        <p class="bifurcation-text" id="bifurcation-text">Behind this question are your goals. Working with them gives a cleaner read.</p>
+        <div class="bifurcation-buttons">
+          <button class="bif-btn primary" data-choice="now">Look at the goal now</button>
+          <button class="bif-btn" data-choice="later">Later</button>
+          <button class="bif-btn" data-choice="answer">Just answer</button>
+        </div>
+      </div>
+
+      <!-- Depth gate — full stop, requires explicit Yes/No, never dismisses itself -->
+      <div id="depth-gate" class="depth-gate hidden">
+        <p class="depth-gate-text">This question — and the dialog beyond it — may touch what is sensitive for you. Resistance can rise: the urge to brush it off. That is how work with serious things goes. Consider whether you are ready to continue.</p>
+        <div class="depth-gate-buttons">
+          <button class="gate-btn primary" data-gate="yes">Yes, continue</button>
+          <button class="gate-btn" data-gate="no">Not now</button>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div id="input-area">
+        <textarea id="user-input" placeholder="Write what is on your mind..." rows="1"></textarea>
+        <button id="send-btn">→</button>
+      </div>
+    </main>
+
+    <!-- Bottom zone: understanding accumulates in domain blocks -->
+    <div id="drop-zone">
+      <div class="domain-block" data-domain="health">
+        <span class="domain-label">Health</span>
+        <div class="domain-dots"></div>
+      </div>
+      <div class="domain-block" data-domain="energy">
+        <span class="domain-label">Energy</span>
+        <div class="domain-dots"></div>
+      </div>
+      <div class="domain-block" data-domain="psyche">
+        <span class="domain-label">Psyche</span>
+        <div class="domain-dots"></div>
+      </div>
+      <div class="domain-block" data-domain="cognition">
+        <span class="domain-label">Cognition</span>
+        <div class="domain-dots"></div>
+      </div>
+      <div class="domain-block" data-domain="performance">
+        <span class="domain-label">Performance</span>
+        <div class="domain-dots"></div>
+      </div>
+      <div class="domain-block" data-domain="meaning">
+        <span class="domain-label">Meaning</span>
+        <div class="domain-dots"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Settings panel (slide-in) -->
+  <div id="settings-overlay" class="hidden"></div>
+  <div id="settings-panel" class="hidden">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="settings-close">✕</button>
+    </div>
+    <div class="settings-body">
+      <label class="setting-label">Model call mode</label>
+      <div class="mode-switch">
+        <button class="mode-btn" id="mode-local" data-mode="local">
+          <span class="mode-title">Local / Subscription</span>
+          <span class="mode-desc" id="local-mode-desc">Via Claude Max subscription, no key</span>
+        </button>
+        <button class="mode-btn active" id="mode-api" data-mode="api">
+          <span class="mode-title">API / Key</span>
+          <span class="mode-desc">Direct call — fast, for demos</span>
+        </button>
+      </div>
+      <div id="local-auth-hint" class="local-auth-hint hidden">
+        <p>Local mode needs a one-time CLI authorization.</p>
+        <p>Run in the terminal:</p>
+        <code>claude auth login</code>
+        <button id="check-local-auth-btn">Check authorization</button>
+      </div>
+      <div id="api-key-section">
+        <label class="setting-label">Anthropic API key</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+        <button id="save-key-btn">Save key</button>
+        <p class="setting-note">The key is stored locally on your machine, not in the code.</p>
+      </div>
+      <div class="settings-divider"></div>
+      <label class="setting-label">Dialog log</label>
+      <button id="copy-log-btn">Copy log</button>
+      <p id="settings-status" class="settings-status"></p>
+    </div>
+  </div>
+
+  <!-- Flying drop animation layer -->
+  <div id="animation-layer"></div>
+
+  <!-- Toast notifications layer -->
+  <div id="toast-layer"></div>
+
+  <!-- Entry splash (removed on first message) -->
+  <div id="entry-splash">
+    <div class="splash-content">
+      <p class="splash-line">How can I help?</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
