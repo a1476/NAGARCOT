@@ -116,6 +116,9 @@ let isTyping = false;
 // dialogStarted: session-only, controls splash.
 const FLAGS_KEY = 'nagarcot_shown_flags';
 const DEPTH_KEY = 'nagarcot_depth_session';
+const GREETING_KEY = 'nagarcot_greeting_shown';
+
+const GREETING = 'Hello. I help make decisions — personal and professional.\nI help you understand yourself, put your goals in order, and build the path to the results you need.\nAsk any question — we\'ll take it from there.';
 
 function loadFlags() {
   try {
@@ -668,6 +671,12 @@ function hideSplash() {
 // ── Init ──
 function init() {
   setField('вопросы');
+  if (!sessionStorage.getItem(GREETING_KEY)) {
+    sessionStorage.setItem(GREETING_KEY, '1');
+    addMessage('agent', GREETING);
+    const splash = document.getElementById('entry-splash');
+    if (splash) splash.remove();
+  }
 }
 
 init();
