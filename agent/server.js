@@ -259,6 +259,8 @@ const server = http.createServer(async (req, res) => {
       }
       const { systemPrompt, messages } = parsed.data;
       const cfg = loadConfig();
+      // On Railway (no claude CLI), fall back to API mode automatically
+      if (cfg.mode === 'local' && !CLAUDE_BIN) cfg.mode = 'api';
       console.log('[chat] mode=%s hasKey=%s model=%s', cfg.mode, !!cfg.apiKey, cfg.model);
 
       try {
