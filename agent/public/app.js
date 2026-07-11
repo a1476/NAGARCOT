@@ -444,6 +444,7 @@ async function callModel(userText) {
       body: JSON.stringify({ systemPrompt: SYSTEM_PROMPT, messages }),
     });
 
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     hideTyping();
     isTyping = false;
@@ -498,7 +499,7 @@ async function callModel(userText) {
     hideTyping();
     isTyping = false;
     sendBtn.disabled = false;
-    addErrorMessage('Engine temporarily unavailable.');
+    addErrorMessage(`Engine temporarily unavailable. (${e.message})`);
     messages.pop();
   }
 }

@@ -193,7 +193,7 @@ const MIME = {
   '.json': 'application/json',
 };
 
-const server = http.createServer(async (req, res) => {
+const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -247,6 +247,7 @@ const server = http.createServer(async (req, res) => {
 
   // API: call model
   if (req.method === 'POST' && url.pathname === '/api/chat') {
+    console.log('[chat] request received');
     let body = '';
     req.on('data', c => body += c);
     req.on('end', async () => {
@@ -258,6 +259,7 @@ const server = http.createServer(async (req, res) => {
       }
       const { systemPrompt, messages } = parsed.data;
       const cfg = loadConfig();
+      console.log('[chat] mode=%s hasKey=%s model=%s', cfg.mode, !!cfg.apiKey, cfg.model);
 
       try {
         let text;
@@ -271,9 +273,11 @@ const server = http.createServer(async (req, res) => {
           }
           text = await callAnthropicAPI(cfg.apiKey, cfg.model, systemPrompt, messages);
         }
+        console.log('[chat] success, chars=%d', text.length);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text }));
       } catch (e) {
+        console.error('[chat] error:', e.message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'local_error', message: e.message }));
       }
@@ -295,6 +299,10 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'text/plain' });
     res.end(data);
   });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
 });
 
 server.listen(PORT, () => {
