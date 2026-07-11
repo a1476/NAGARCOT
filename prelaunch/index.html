@@ -738,8 +738,8 @@
         </div>
 
         <!-- Full-width SVG pinned to bottom -->
-        <div style="position:absolute;bottom:0;left:0;width:100%;overflow:hidden">
-          <svg id="is-svg" viewBox="0 10 1440 800" style="display:block;width:100%;height:auto">
+        <div id="is-svg-wrap" style="position:absolute;bottom:0;left:0;width:100%;overflow:hidden">
+          <svg id="is-svg" viewBox="0 10 1440 800" preserveAspectRatio="xMidYMin meet" style="display:block;width:100%;height:auto">
             <g fill="none" stroke="#E4DED2" stroke-width="1">
               <path d="M-20,640 Q 420,540 920,620"></path>
               <path d="M-20,420 Q 440,330 920,410"></path>
@@ -1146,7 +1146,7 @@
     // ═══════════════════════════════════════════════════════════════════════
 
     // ── Config — update URL when live agent is deployed ──────────────────────
-    const LIVE_ENGINE_URL = '';   // e.g. 'https://agent.nagarcot.com'
+    const LIVE_ENGINE_URL = 'https://app.nagarcot.com';
 
     const ACTS = [
       { id: 'cover',        steps: 1 },  // act 0
@@ -1722,6 +1722,27 @@
       const fn=document.getElementById('is-frame-n'),ft=document.getElementById('is-frame-t'),fd=document.getElementById('is-frame-d');
       if(fn)fn.textContent=frs[f].n; if(ft)ft.textContent=frs[f].t; if(fd)fd.textContent=frs[f].d;
       for(let i=0;i<4;i++){const d=document.getElementById('is-dot-'+i),l=document.getElementById('is-lbl-'+i);if(d)d.style.background=(f===i)?'#7A1F2B':'#CFC8BB';if(l){l.style.color=(f>=i)?'#141414':'#A79F92';l.style.fontWeight=(f===i)?'800':'600';}}
+
+      // F4: scale mountain to never overlap caption (bottom:9% + ~36px safe zone)
+      const svgWrap = document.getElementById('is-svg-wrap');
+      const svgEl   = document.getElementById('is-svg');
+      const scene   = document.getElementById('hw-is');
+      if (svgWrap && svgEl && scene) {
+        if (f === 3) {
+          // F4: SVG fills full scene height, top-aligned (xMidYMin meet).
+          // Width-limited at all iPad/desktop sizes → atoms render in upper portion,
+          // leaving caption area (bottom:9%) clear with ≥16px gap.
+          svgWrap.style.height = scene.clientHeight + 'px';
+          svgEl.style.width  = 'auto';
+          svgEl.style.height = '100%';
+          svgEl.style.maxWidth = '100%';
+        } else {
+          svgWrap.style.height = '';
+          svgEl.style.width  = '100%';
+          svgEl.style.height = 'auto';
+          svgEl.style.maxWidth = '';
+        }
+      }
     }
 
     function startISLife() {
