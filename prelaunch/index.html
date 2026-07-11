@@ -832,21 +832,20 @@
             <!-- STRATA ACCORDION (flush under window) -->
             <div id="spr-strata" style="width:90%;border-top:2px solid #8F8676"></div>
 
-            <!-- CTA -->
-            <div style="width:90%;display:flex;justify-content:center;margin-top:22px">
-              <a id="spr-live" href="#" onclick="event.preventDefault();window.location.href=LIVE_ENGINE_URL+'?return='+encodeURIComponent('/prelaunch#spr-demo');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
-            </div>
 
           </div>
         </div><!-- /left column -->
 
         <!-- RIGHT PANEL -->
-        <div style="position:absolute;left:65%;right:2.5%;top:9%;display:flex;flex-direction:column">
+        <div style="position:absolute;left:65%;right:2.5%;top:108px;display:flex;flex-direction:column">
           <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · SPR ENGINE</div>
           <div style="margin-top:26px;min-height:110px">
             <p id="spr-status" style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty">The working engine — and the five methodological strata it stands on.</p>
           </div>
           <div id="spr-stepper" style="display:flex;flex-direction:column;margin-top:10px;border-top:1px solid #D9D3C8"></div>
+          <div style="display:flex;justify-content:center;margin-top:28px">
+            <a id="spr-live" href="#" onclick="event.preventDefault();if(LIVE_ENGINE_URL)window.open(LIVE_ENGINE_URL+'/?return=%2Fprelaunch%23spr-demo','_blank');else alert('Agent URL not configured yet.');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
+          </div>
         </div>
 
       </div><!-- /#hw-spr -->
@@ -905,7 +904,7 @@
       </div>
 
       <!-- Right panel -->
-      <div style="position:absolute;left:65%;right:2.5%;top:8%;display:flex;flex-direction:column">
+      <div style="position:absolute;left:65%;right:2.5%;top:108px;display:flex;flex-direction:column">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · THE PERSON'S MAP</div>
         <div style="margin-top:26px;min-height:96px">
           <p id="pm-status" style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty"></p>
@@ -1101,7 +1100,7 @@
           </div>
         </div>
         <!-- Right panel -->
-        <div style="position:absolute;left:65%;right:2.5%;top:12%;display:flex;flex-direction:column">
+        <div style="position:absolute;left:65%;right:2.5%;top:108px;display:flex;flex-direction:column">
           <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · SUPPORT</div>
           <p style="margin:26px 0 0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.6;color:#141414;text-wrap:pretty">Three sides of one loop. The person gets a verified specialist and a session that returns as substance — recorded, transcribed, kept. The specialist gets what no first appointment has: the context the system has gathered, patterns it has noticed, support in hypotheses and reporting. And the map gets stronger: findings flow back into it — through consent, and only through consent.</p>
         </div>
@@ -1779,7 +1778,7 @@
       let sH='';
       SPR_STRATA.forEach((s,i)=>{
         const chev=o===i?'rotate(180deg)':'rotate(0deg)', mh=o===i?'240px':'0px', op=o===i?1:0;
-        sH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;background:${SPR_BGS[i]};border-bottom:1px solid #8F8676"><div style="display:flex;align-items:baseline;gap:14px;padding:13px 22px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E675C;flex-shrink:0">0${i+1}</span><span style="font-size:14px;line-height:1.45;color:#141414"><strong style="font-weight:500;font-family:'Archivo',sans-serif;letter-spacing:0.02em">${s.name}</strong> — ${s.tail}</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#6E675C;transition:transform 350ms ease;transform:${chev}">▾</span></div><div style="overflow:hidden;transition:max-height 350ms cubic-bezier(.22,1,.36,1),opacity 300ms ease;max-height:${mh};opacity:${op}"><p style="margin:0;padding:2px 22px 14px 47px;font-size:14px;line-height:1.6;color:#4A453D;max-width:86%;text-wrap:pretty">${s.body}</p></div></div>`;
+        sH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;background:${SPR_BGS[i]};border-bottom:1px solid #8F8676"><div style="display:flex;align-items:center;gap:14px;padding:13px 22px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E675C;flex-shrink:0">0${i+1}</span><span style="font-size:16px;line-height:1.45;color:#141414"><strong style="font-weight:500;font-family:'Archivo',sans-serif;letter-spacing:0.02em">${s.name}</strong> — ${s.tail}</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:16px;color:#6E675C;transition:transform 350ms ease;transform:${chev}">▾</span></div><div style="overflow:hidden;transition:max-height 350ms cubic-bezier(.22,1,.36,1),opacity 300ms ease;max-height:${mh};opacity:${op}"><p style="margin:0;padding:2px 22px 16px 47px;font-size:16px;line-height:1.6;color:#4A453D;max-width:86%;text-wrap:pretty">${s.body}</p></div></div>`;
       });
       sc.innerHTML = sH;
 
