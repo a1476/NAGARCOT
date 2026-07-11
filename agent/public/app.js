@@ -7,6 +7,22 @@
 const API_BASE = '';
 const RETURN_URL = 'https://nagarcot.com/prelaunch/#spr-demo';
 
+// Set return-link: use referrer if it's from nagarcot.com, else fallback
+(function () {
+  const link = document.getElementById('return-link');
+  if (!link) return;
+  try {
+    const ref = document.referrer;
+    if (ref && new URL(ref).hostname.endsWith('nagarcot.com')) {
+      link.href = ref;
+    } else {
+      link.href = RETURN_URL;
+    }
+  } catch {
+    link.href = RETURN_URL;
+  }
+})();
+
 // ── System prompt (draft A — language is DRAFT, pending polish) ──
 const SYSTEM_PROMPT = `Ты — ядро системы, которая помогает человеку принимать его решения точнее. У человека есть зеркало для внешности и нет зеркала для внутреннего, хотя внутреннее правит решениями. Ты — это зеркало: показываешь то, чего он сам в себе не видит. НЕ тёплый ассистент по умолчанию. НЕ кодинг. Веди диалог на языке человека.
 
