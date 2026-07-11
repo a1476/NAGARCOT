@@ -170,10 +170,11 @@ async function callAnthropicAPI(apiKey, model, systemPrompt, messages) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.content && parsed.content[0]) {
-            resolve(parsed.content[0].text);
+          const textBlock = Array.isArray(parsed.content) && parsed.content.find(b => b.type === 'text');
+          if (textBlock && textBlock.text) {
+            resolve(textBlock.text);
           } else {
-            reject(new Error(parsed.error?.message || 'No content in response'));
+            reject(new Error(parsed.error?.message || 'No text content in response'));
           }
         } catch (e) {
           reject(e);
