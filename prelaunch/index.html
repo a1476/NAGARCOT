@@ -837,13 +837,13 @@
         </div><!-- /left column -->
 
         <!-- RIGHT PANEL -->
-        <div style="position:absolute;left:65%;right:2.5%;top:108px;display:flex;flex-direction:column">
+        <div style="position:absolute;left:65%;right:2.5%;top:108px;bottom:5%;display:flex;flex-direction:column">
           <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.16em;color:#6E675C">NAGARCOT · SPR ENGINE</div>
           <div style="margin-top:26px;min-height:110px">
             <p id="spr-status" style="margin:0;font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:20px;line-height:1.55;color:#141414;text-wrap:pretty">The working engine — and the five methodological strata it stands on.</p>
           </div>
           <div id="spr-stepper" style="display:flex;flex-direction:column;margin-top:10px;border-top:1px solid #D9D3C8"></div>
-          <div style="display:flex;justify-content:center;margin-top:28px">
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:80px">
             <a id="spr-live" href="#" onclick="event.preventDefault();if(LIVE_ENGINE_URL)window.open(LIVE_ENGINE_URL+'/?return=%2Fprelaunch%23spr-demo','_blank');else alert('Agent URL not configured yet.');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
           </div>
         </div>
@@ -1778,7 +1778,7 @@
       let sH='';
       SPR_STRATA.forEach((s,i)=>{
         const chev=o===i?'rotate(180deg)':'rotate(0deg)', mh=o===i?'240px':'0px', op=o===i?1:0;
-        sH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;background:${SPR_BGS[i]};border-bottom:1px solid #8F8676"><div style="display:flex;align-items:center;gap:14px;padding:13px 22px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E675C;flex-shrink:0">0${i+1}</span><span style="font-size:16px;line-height:1.45;color:#141414"><strong style="font-weight:500;font-family:'Archivo',sans-serif;letter-spacing:0.02em">${s.name}</strong> — ${s.tail}</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:16px;color:#6E675C;transition:transform 350ms ease;transform:${chev}">▾</span></div><div style="overflow:hidden;transition:max-height 350ms cubic-bezier(.22,1,.36,1),opacity 300ms ease;max-height:${mh};opacity:${op}"><p style="margin:0;padding:2px 22px 16px 47px;font-size:16px;line-height:1.6;color:#4A453D;max-width:86%;text-wrap:pretty">${s.body}</p></div></div>`;
+        sH+=`<div onclick="sprToggle(${i})" data-clickable style="cursor:pointer;background:${SPR_BGS[i]};border-bottom:1px solid #8F8676"><div style="display:flex;align-items:center;gap:14px;padding:13px 22px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E675C;flex-shrink:0">0${i+1}</span><span style="font-size:16px;line-height:1.45;color:#141414"><strong style="font-weight:500;font-family:'Archivo',sans-serif;letter-spacing:0.02em">${s.name}</strong> — ${s.tail}</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:16px;color:#6E675C;transition:transform 350ms ease;transform:${chev}">▾</span></div><div style="overflow:hidden;transition:max-height 350ms cubic-bezier(.22,1,.36,1),opacity 300ms ease;max-height:${mh};opacity:${op}"><p style="margin:0;padding:2px 22px 16px 47px;font-size:16px;line-height:1.6;color:#4A453D;max-width:86%;text-wrap:pretty">${s.body}</p></div></div>`;
       });
       sc.innerHTML = sH;
 
@@ -1787,7 +1787,7 @@
       if(stEl){stEl.textContent=statusLine;stEl.style.animation='none';requestAnimationFrame(()=>{stEl.style.animation=((o+1)%2===0?'statusInA':'statusInB')+' 400ms cubic-bezier(.22,1,.36,1) both';});}
 
       const spEl=document.getElementById('spr-stepper');
-      if(spEl){let stH='';SPR_STRATA.forEach((s,i)=>{const dot=o===i?'#7A1F2B':'#CFC8BB',txt=o===i?'#141414':'#A79F92',fw=o===i?'800':'600',nm=s.name.toUpperCase().slice(0,28)+(s.name.length>28?'…':'');stH+=`<div onclick="sprToggle(${i})" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92;width:26px">0${i+1}</span><span style="font-family:'Archivo',sans-serif;font-weight:${fw};font-size:13px;letter-spacing:0.04em;color:${txt}">${nm}</span></div>`;});spEl.innerHTML=stH;}
+      if(spEl){let stH='';SPR_STRATA.forEach((s,i)=>{const dot=o===i?'#7A1F2B':'#CFC8BB',txt=o===i?'#141414':'#A79F92',fw=o===i?'800':'600',nm=s.name.toUpperCase().slice(0,28)+(s.name.length>28?'…':'');stH+=`<div onclick="sprToggle(${i})" data-clickable style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #E7E1D6"><span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A79F92;width:26px">0${i+1}</span><span style="font-family:'Archivo',sans-serif;font-weight:${fw};font-size:13px;letter-spacing:0.04em;color:${txt}">${nm}</span></div>`;});spEl.innerHTML=stH;}
     }
 
     function sprToggle(i) { renderSPR(sprOpen===i?-1:i); fitSprDemo(); }
@@ -2023,6 +2023,27 @@
 
     document.getElementById('act-support').addEventListener('nagarcot-pass', (e) => { renderSupport(e.detail.step); });
     renderSupport(0);
+
+    // ── Hash-based entry point ─────────────────────────────────────────────
+    // Map anchor → { act, step } so returning from external URLs lands correctly
+    const HASH_NAV = {
+      'spr-demo': { act: 3, step: 8 }
+    };
+    (function () {
+      const h = location.hash.replace('#', '');
+      if (!h || !HASH_NAV[h]) return;
+      const nav = HASH_NAV[h];
+      // Mark all acts before target as seen so rail reflects progress
+      document.querySelectorAll('#stage .act').forEach((el, i) => {
+        el.classList.toggle('active', i === nav.act);
+      });
+      document.querySelectorAll('.rail-tick').forEach((el, i) => {
+        el.classList.toggle('current', i === nav.act);
+      });
+      passAct  = nav.act;
+      passStep = nav.step;
+      renderPass();
+    })();
 
     // ── ACT 2 internal row-click jump ─────────────────────────────────────
     function tmJump(i) {
