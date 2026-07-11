@@ -834,7 +834,7 @@
 
             <!-- CTA -->
             <div style="width:90%;display:flex;justify-content:center;margin-top:22px">
-              <a id="spr-live" href="#" onclick="event.preventDefault();if(LIVE_ENGINE_URL)window.open(LIVE_ENGINE_URL,'_blank');else alert('Agent URL not configured yet.');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
+              <a id="spr-live" href="#" onclick="event.preventDefault();window.location.href=LIVE_ENGINE_URL+'?return='+encodeURIComponent('/prelaunch#spr-demo');" data-clickable style="display:inline-flex;align-items:center;height:44px;padding:0 24px;border:1.5px solid #7A1F2B;border-radius:2px;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.06em;color:#7A1F2B;text-decoration:none">TRY THE LIVE ENGINE</a>
             </div>
 
           </div>

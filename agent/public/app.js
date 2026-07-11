@@ -7,14 +7,14 @@
 const API_BASE = '';
 const RETURN_URL = 'https://nagarcot.com/prelaunch/#spr-demo';
 
-// Set return-link: use referrer if it's from nagarcot.com, else fallback
+// Set return-link from ?return= query param (path only, guards open redirect)
 (function () {
   const link = document.getElementById('return-link');
   if (!link) return;
   try {
-    const ref = document.referrer;
-    if (ref && new URL(ref).hostname.endsWith('nagarcot.com')) {
-      link.href = ref;
+    const param = new URLSearchParams(window.location.search).get('return');
+    if (param && /^\/[^/]/.test(param)) {
+      link.href = 'https://nagarcot.com' + param;
     } else {
       link.href = RETURN_URL;
     }
