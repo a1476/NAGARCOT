@@ -2043,6 +2043,7 @@
       passAct  = nav.act;
       passStep = nav.step;
       renderPass();
+      history.replaceState(null, '', location.pathname + location.search);
     })();
 
     // ── ACT 2 internal row-click jump ─────────────────────────────────────
