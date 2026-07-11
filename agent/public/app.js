@@ -498,7 +498,7 @@ async function callModel(userText) {
     hideTyping();
     isTyping = false;
     sendBtn.disabled = false;
-    addErrorMessage('Server unavailable. Make sure node server.js is running on port 3131.');
+    addErrorMessage('Engine temporarily unavailable.');
     messages.pop();
   }
 }
