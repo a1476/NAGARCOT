@@ -55,7 +55,6 @@ const PORT = process.env.PORT || 3131;
 const CONFIG_FILE = path.join(__dirname, 'config.local.json');
 const DEFAULT_MODEL = 'claude-sonnet-5'; // Sonnet 5, released 2026-06-30
 const LOG_FILE = path.join('/data', 'chats.jsonl');
-const LOG_TOKEN = process.env.LOG_TOKEN || '';
 
 function appendLog(entry) {
   try {
@@ -259,7 +258,9 @@ const server = http.createServer(async (req, res) => {
   // API: read logs (token-protected)
   if (req.method === 'GET' && url.pathname === '/api/logs') {
     const token = url.searchParams.get('token');
-    if (!LOG_TOKEN || token !== LOG_TOKEN) {
+    const logToken = process.env.LOG_TOKEN || '';
+    console.log('[logs] token check — expected len=%d got len=%d match=%s', logToken.length, (token||'').length, token === logToken);
+    if (!logToken || token !== logToken) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'forbidden' }));
       return;
@@ -352,4 +353,5 @@ process.on('unhandledRejection', (reason) => {
 
 server.listen(PORT, () => {
   console.log(`NAGARCOT running at http://localhost:${PORT}`);
+  console.log('[startup] LOG_TOKEN set:', !!(process.env.LOG_TOKEN), 'len:', (process.env.LOG_TOKEN||'').length);
 });
