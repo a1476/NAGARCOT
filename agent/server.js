@@ -54,6 +54,16 @@ const CLAUDE_BIN = (() => {
 const PORT = process.env.PORT || 3131;
 const CONFIG_FILE = path.join(__dirname, 'config.local.json');
 const DEFAULT_MODEL = 'claude-sonnet-5'; // Sonnet 5, released 2026-06-30
+const LOG_FILE = path.join('/data', 'chats.jsonl');
+const LOG_TOKEN = process.env.LOG_TOKEN || '';
+
+function appendLog(entry) {
+  try {
+    fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n');
+  } catch {
+    // /data may not exist in local dev — silently skip
+  }
+}
 
 function loadConfig() {
   try {
@@ -246,6 +256,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API: read logs (token-protected)
+  if (req.method === 'GET' && url.pathname === '/api/logs') {
+    const token = url.searchParams.get('token');
+    if (!LOG_TOKEN || token !== LOG_TOKEN) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'forbidden' }));
+      return;
+    }
+    const dateFilter = url.searchParams.get('date'); // e.g. 2026-07-11
+    try {
+      const raw = fs.readFileSync(LOG_FILE, 'utf8');
+      const lines = raw.trim().split('\n').filter(Boolean);
+      const entries = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      const result = dateFilter ? entries.filter(e => e.date === dateFilter) : entries;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify([]));
+    }
+    return;
+  }
+
   // API: call model
   if (req.method === 'POST' && url.pathname === '/api/chat') {
     console.log('[chat] request received');
@@ -277,6 +310,15 @@ const server = http.createServer(async (req, res) => {
           text = await callAnthropicAPI(cfg.apiKey, cfg.model, systemPrompt, messages);
         }
         console.log('[chat] success, chars=%d', text.length);
+        const now = new Date();
+        appendLog({
+          ts: now.toISOString(),
+          date: now.toISOString().slice(0, 10),
+          userMsg: messages[messages.length - 1]?.content || '',
+          agentReply: text,
+          model: cfg.model,
+          mode: cfg.mode,
+        });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text }));
       } catch (e) {
