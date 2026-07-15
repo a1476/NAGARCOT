@@ -53,7 +53,7 @@ const CLAUDE_BIN = (() => {
 
 const PORT = process.env.PORT || 3131;
 const CONFIG_FILE = path.join(__dirname, 'config.local.json');
-const DEFAULT_MODEL = 'claude-sonnet-5'; // Sonnet 5, released 2026-06-30
+const DEFAULT_MODEL = 'claude-sonnet-4-6'; // sonnet-5 returns thinking-only blocks in prod
 const LOG_FILE = path.join('/data', 'chats.jsonl');
 
 function appendLog(entry) {
@@ -179,11 +179,20 @@ async function callAnthropicAPI(apiKey, model, systemPrompt, messages) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
+          console.log('[api] status=%d stop_reason=%s content_types=%s',
+            res.statusCode,
+            parsed.stop_reason || '?',
+            Array.isArray(parsed.content) ? parsed.content.map(b => b.type).join(',') : typeof parsed.content
+          );
           const textBlock = Array.isArray(parsed.content) && parsed.content.find(b => b.type === 'text');
           if (textBlock && textBlock.text) {
             resolve(textBlock.text);
+          } else if (Array.isArray(parsed.content) && parsed.content.length > 0) {
+            // Fallback: model returned blocks but no text (e.g. thinking-only) — surface error
+            const types = parsed.content.map(b => b.type).join(', ');
+            reject(new Error(`Model returned [${types}] but no text block. stop_reason=${parsed.stop_reason}`));
           } else {
-            reject(new Error(parsed.error?.message || 'No text content in response'));
+            reject(new Error(parsed.error?.message || `No text content. HTTP ${res.statusCode}`));
           }
         } catch (e) {
           reject(e);
