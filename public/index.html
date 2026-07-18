@@ -22,6 +22,8 @@
         <div class="tab" data-field="цели" id="tab-цели">
           <span class="tab-dot"></span>
           Goals
+          <span class="tab-signal hidden" id="signal-dot"></span>
+          <span class="tab-signal-text hidden" id="signal-text">услышала кое-что — когда закончишь</span>
         </div>
         <div class="tab" data-field="база" id="tab-база">
           <span class="tab-dot"></span>
@@ -148,6 +150,102 @@
     </div>
   </div>
 
+  <!-- Goals overlay (replaces dialog area when tab is active) -->
+  <div id="goals-overlay" class="goals-overlay hidden">
+
+    <div id="goals-vector" class="goals-vector hidden"></div>
+
+    <!-- First entry: empty state -->
+    <div id="goals-empty" class="goals-empty hidden">
+      <p class="goals-empty-q">К чему хочешь прийти?</p>
+      <div class="goals-first-input">
+        <textarea id="goals-first-text" placeholder="Напиши первую цель…" rows="2"></textarea>
+        <button id="goals-first-submit">→</button>
+      </div>
+    </div>
+
+    <!-- Candidate zone (Услышанное) -->
+    <section id="goals-candidates-zone" class="goals-zone hidden">
+      <h3 class="goals-zone-title">Услышанное</h3>
+      <div id="goals-candidates-list" class="goals-cards"></div>
+    </section>
+
+    <!-- Goals zone (Твои цели) -->
+    <section id="goals-active-zone" class="goals-zone hidden">
+      <h3 class="goals-zone-title">Твои цели</h3>
+      <div id="goals-active-list" class="goals-cards"></div>
+    </section>
+
+    <!-- History zone (История) -->
+    <section id="goals-history-zone" class="goals-zone hidden">
+      <h3 class="goals-zone-title">История</h3>
+      <div id="goals-history-list" class="goals-cards goals-cards--small"></div>
+    </section>
+
+    <!-- IRQ friction line -->
+    <div id="goals-irq" class="goals-irq hidden">
+      <span id="goals-irq-text"></span>
+      <button class="goals-irq-close" id="goals-irq-close">✕</button>
+    </div>
+
+    <!-- Dev panel -->
+    <details id="goals-dev-panel" class="goals-dev">
+      <summary>dev</summary>
+      <div class="goals-dev-body">
+        <button id="dev-load-corpus">загрузить корпус K1–K5</button>
+        <button id="dev-clear">очистить</button>
+        <button id="dev-add-candidate">подбросить кандидата</button>
+        <div class="goals-dev-signal">
+          Сигнал: <span id="dev-signal-state">—</span>
+        </div>
+        <div class="goals-dev-ch2">
+          <button id="dev-ch2-toggle" class="dev-ch2-btn">канал 2: вкл</button>
+          <span id="dev-ch2-tokens" class="dev-ch2-tokens"></span>
+          <pre id="dev-ch2-block" class="dev-ch2-block"></pre>
+        </div>
+        <div class="goals-dev-harvest">
+          <button id="dev-harvest-toggle" class="dev-harvest-btn">жатва: вкл</button>
+          <span id="dev-harvest-verbal" class="dev-harvest-verbal"></span>
+          <div id="dev-harvest-stats" class="dev-harvest-stats"></div>
+          <div id="dev-harvest-candidates" class="dev-harvest-candidates"></div>
+        </div>
+        <div class="goals-dev-log" id="dev-event-log"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Verify dialog (modal over goals) -->
+  <div id="verify-overlay" class="verify-overlay hidden">
+    <div class="verify-panel">
+      <div class="verify-header">
+        <span class="verify-title">Проверка</span>
+        <button class="verify-quit" id="verify-quit">Хватит пока</button>
+      </div>
+      <p class="verify-goal-text" id="verify-goal-text"></p>
+      <div id="verify-question-area"></div>
+    </div>
+  </div>
+
+  <!-- Hot moment dialog (after candidate accepted) -->
+  <div id="hot-moment" class="hot-moment hidden">
+    <p class="hot-moment-text">Проверим её сейчас? Два-три вопроса — твоя она или навязанная</p>
+    <div class="hot-moment-btns">
+      <button id="hot-now">Давай</button>
+      <button id="hot-later">Позже</button>
+    </div>
+  </div>
+
+  <!-- Group picker (after Mine) -->
+  <div id="group-picker" class="group-picker hidden">
+    <p class="group-picker-title">В какую область?</p>
+    <div class="group-picker-btns">
+      <button data-group="личные">личные</button>
+      <button data-group="социальные">социальные</button>
+      <button data-group="внешние">внешние</button>
+    </div>
+  </div>
+
   <script src="app.js"></script>
+  <script src="goals.js"></script>
 </body>
 </html>
